@@ -88,6 +88,16 @@ def get_contacts():
         contacts = []
     return jsonify(contacts)
 
+@app.route('/contacts', methods=['DELETE'])
+def delete_all_contacts():
+    try:
+        if os.path.exists("contacts.json"):
+            os.remove("contacts.json")
+        return jsonify({'status': 'success', 'message': 'All contacts deleted.'})
+    except Exception as e:
+        logger.error(f'Error deleting contacts: {e}')
+        return jsonify({'error': 'Failed to delete contacts'}), 500
+
 @app.route('/search-progress')
 def search_progress_stream():
     def generate():

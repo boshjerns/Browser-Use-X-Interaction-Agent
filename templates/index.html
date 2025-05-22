@@ -27,7 +27,7 @@ body{
   padding:40px 12px;
 }
 
-/* ---------- “window” ---------- */
+/* ---------- "window" ---------- */
 .container{
   width:100%;max-width:600px;background:#fff;
   border:2px solid #000;                /* outer frame */
@@ -120,17 +120,23 @@ body{
 
 .api-key-section {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-bottom: 16px;
 }
 
 .api-key-section .input {
   flex: 1;
+  margin-bottom: 0;
 }
 
 .api-key-section .btn {
   flex: 0 0 auto;
   white-space: nowrap;
+  width: auto;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  margin-bottom: 0;
 }
 </style>
 </head>
@@ -153,7 +159,13 @@ body{
     <div id="results" class="box results"></div>
 
     <div id="contacts-section">
-      <h2>Saved Contacts</h2>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <h2 style="margin: 0; font-size: 1rem;">Saved Contacts</h2>
+        <div>
+          <button class="btn" onclick="copyAllEmails()" style="margin-left: 10px; font-size: 0.75rem; padding: 5px 10px; width: auto;">Copy Emails</button>
+          <button class="btn" onclick="deleteAllContacts()" style="margin-left: 10px; font-size: 0.75rem; padding: 5px 10px; background-color: #d9534f; color: white; width: auto;">Delete All</button>
+        </div>
+      </div>
       <div class="contacts-wrapper">
         <table id="contacts-table">
           <thead>
@@ -180,8 +192,10 @@ function updateContactsTable(contacts) {
   contacts.forEach(c => {
     tbody.insertAdjacentHTML('beforeend',`
       <tr>
-        <td>${c.email||''}</td><td>${c.phone||''}</td>
-        <td>${c.source||''}</td><td>${c.timestamp||''}</td>
+        <td title="${c.email|| ''}" onclick="copyCellContent(event, 'email')" style="cursor: pointer;">${c.email|| ''}</td>
+        <td title="${c.phone|| ''}" onclick="copyCellContent(event, 'phone')" style="cursor: pointer;">${c.phone|| ''}</td>
+        <td title="${c.source|| ''}">${c.source|| ''}</td>
+        <td title="${c.timestamp|| ''}">${c.timestamp|| ''}</td>
       </tr>`);
   });
 }
@@ -197,6 +211,7 @@ function startProgressStream() {
     const data = JSON.parse(event.data);
     
     if (data.type === 'heartbeat') {
+      console.debug('Heartbeat received'); // Added for debugging, can be removed
       return; // Ignore heartbeat messages
     }
     
@@ -212,7 +227,7 @@ function startProgressStream() {
   };
   
   eventSource.onerror = function() {
-    logMessage('Connection to progress stream lost');
+    logMessage('Connection to progress stream lost. Please retry search if active.');
     eventSource.close();
   };
 }
@@ -238,7 +253,7 @@ async function performSearch(){
     resBox.style.display='block';
     if(data.result){
       logMessage('Search complete!');
-      resBox.textContent=data.result;
+      // resBox.textContent=data.result; // Result is now shown via progress stream
     }
     else if(data.error){
       logMessage('Error: '+data.error);
@@ -265,8 +280,10 @@ async function loadContacts(){
   contacts.forEach(c=>{
     tbody.insertAdjacentHTML('beforeend',`
       <tr>
-        <td>${c.email||''}</td><td>${c.phone||''}</td>
-        <td>${c.source||''}</td><td>${c.timestamp||''}</td>
+        <td title="${c.email|| ''}" onclick="copyCellContent(event, 'email')" style="cursor: pointer;">${c.email|| ''}</td>
+        <td title="${c.phone|| ''}" onclick="copyCellContent(event, 'phone')" style="cursor: pointer;">${c.phone|| ''}</td>
+        <td title="${c.source|| ''}">${c.source|| ''}</td>
+        <td title="${c.timestamp|| ''}">${c.timestamp|| ''}</td>
       </tr>`);
   });
 }
@@ -319,6 +336,56 @@ async function clearApiKey() {
     logMessage('API key cleared');
   } catch (e) {
     logMessage('Error clearing API key');
+  }
+}
+
+async function copyAllEmails() {
+  const emailCells = document.querySelectorAll('#contacts-table tbody td:first-child');
+  const emails = Array.from(emailCells).map(cell => cell.textContent.trim()).filter(email => email);
+  
+  if (emails.length === 0) {
+    logMessage('No emails to copy.');
+    return;
+  }
+  
+  try {
+    await navigator.clipboard.writeText(emails.join('\n'));
+    logMessage('All emails copied to clipboard!');
+  } catch (err) {
+    logMessage('Failed to copy emails: ' + err);
+  }
+}
+
+async function deleteAllContacts() {
+  if (!confirm('Are you sure you want to delete all contacts? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/contacts', { method: 'DELETE' });
+    if (response.ok) {
+      document.querySelector('#contacts-table tbody').innerHTML = ''; // Clear table
+      logMessage('All contacts deleted successfully.');
+    } else {
+      const data = await response.json();
+      logMessage('Failed to delete contacts: ' + (data.error || 'Server error'));
+    }
+  } catch (e) {
+    logMessage('Error deleting contacts: ' + e);
+  }
+}
+
+async function copyCellContent(event, type) {
+  const textToCopy = event.target.textContent.trim();
+  if (!textToCopy) {
+    logMessage(`No ${type} to copy.`);
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(textToCopy);
+    logMessage(`Copied ${type}: ${textToCopy}`);
+  } catch (err) {
+    logMessage(`Failed to copy ${type}: ` + err);
   }
 }
 
