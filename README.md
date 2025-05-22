@@ -21,7 +21,7 @@ A lightweight Flask app that automates your browser to scour the web for **email
 | **Live browser automation** | Chrome/Edge driven by [Browser-Use](https://docs.browser-use.com) with smart retries and captcha handling |
 | **Instant progress feed**   | WebSocket logs update as each page is parsed—no more staring at a loading spinner |
 | **LLM-assisted parsing**    | LangChain + OpenAI extract structured contacts from messy HTML |
-| **Deduped contact vault**   | Normalizes & stores contacts in `sqlite` (or plug in Postgres) to avoid duplicates |
+| **Deduped contact vault**   | Normalizes contacts and stores them in a local `contacts.json` file to avoid duplicates |
 | **Secure secrets**          | User-provided API keys (e.g., for OpenAI) are encrypted using Fernet (AES in CBC mode with HMAC) from the `cryptography` library. The master encryption key is stored locally in `.api_key`, and the encrypted user API key is stored in `.encrypted_api_key`. Both files are correctly listed in `.gitignore` to prevent them from being committed to version control. Decrypted keys are held in memory only when actively being used by the application. |
 | **Retro Win-95 UI**         | Pixel-perfect buttons, gray panels, and a splash of neon green for that _dial-up_ vibe |
 
@@ -66,9 +66,6 @@ python app.py                          # then open http://127.0.0.1:5000
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `OPENAI_API_KEY`       | LLM calls for parsing & reasoning (optional — can be entered in the UI) | *none* |
-| `BROWSER_USE_HEADLESS` | Run Chrome headless (`1`) or visible (`0`) | `1` |
-| `DB_URL`               | Use Postgres (`postgresql+psycopg://…`) instead of SQLite | `sqlite:///contacts.db` |
-| `MAX_STEPS`            | Max agent navigation steps per search | `100` |
 
 ---
 
