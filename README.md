@@ -15,8 +15,8 @@ A web application that uses browser automation to discover contact information f
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/boshjerns/Browser-Use-Contact_Discovery-Agent.git
-cd Browser-Use-Contact_Discovery-Agent
+git clone https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent.git
+cd BrowserUse--Contact-Discovery-Agent
 ```
 
 2. Install dependencies:
@@ -57,3 +57,7 @@ python app.py
 ## License
 
 MIT License
+
+---
+
+Repository: [https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent](https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent)
