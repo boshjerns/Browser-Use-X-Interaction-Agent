@@ -3,121 +3,330 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Retro Game Contact Search</title>
+<title>Contact Search Console</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
 <style>
-    :root{--neon:#39ff14;--bg:#222;--panel:#111;}
-    *{box-sizing:border-box}
-    body{
-        margin:0;background:var(--bg);color:var(--neon);
-        font-family:'Press Start 2P',monospace;
-        display:flex;justify-content:center;align-items:flex-start;
-        min-height:100vh;padding:32px 12px;
-    }
-    .container{
-        width:100%;max-width:540px;background:var(--panel);
-        border:4px solid var(--neon);border-radius:16px;
-        box-shadow:0 0 40px #39ff14aa;padding:32px 24px;
-    }
-    h1{margin:0 0 32px;text-align:center;font-size:1.45rem;letter-spacing:2px;text-shadow:0 0 8px var(--neon);}
-    .retro-input,.retro-btn{
-        width:100%;border-radius:8px;border:2px solid var(--neon);font-size:1rem;
-        font-family:'Press Start 2P',monospace;
-    }
-    .retro-input{
-        padding:12px 16px;background:#222;color:var(--neon);
-        margin-bottom:18px;box-shadow:0 0 8px #39ff1444;
-    }
-    .retro-input:focus{border-color:#fff;outline:none}
-    .retro-btn{
-        padding:14px 0;background:var(--neon);color:#111;cursor:pointer;
-        box-shadow:0 0 12px var(--neon);margin-bottom:24px;
-        transition:background .2s,color .2s;
-    }
-    .retro-btn:hover{background:#fff;color:var(--neon)}
-    .log-area,.results{
-        background:#181818;border:2px solid var(--neon);border-radius:8px;
-        padding:12px 16px;word-break:break-word;
-    }
-    .log-area{font-size:.8rem;min-height:60px;max-height:120px;overflow-y:auto;margin-bottom:18px}
-    .results{display:none;margin-top:18px}
-    .loading{text-align:center;color:var(--neon);font-size:1.1rem;margin-top:12px}
-    #contacts-section h2{margin:24px 0 12px;text-align:center;font-size:1rem}
-    .contacts-wrapper{max-height:260px;overflow-y:auto;border:2px solid var(--neon);border-radius:8px}
-    #contacts-table{width:100%;border-collapse:collapse;font-size:.9rem;background:#181818;color:#fff}
-    #contacts-table thead th{position:sticky;top:0;background:#111;color:var(--neon);padding:6px}
-    #contacts-table td,#contacts-table th{padding:6px 8px;border-bottom:1px solid #333}
-    #contacts-table td{max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---------- palette & base ---------- */
+:root{
+  --win-grey:#c0c0c0;
+  --win-blue:#0a2fa5;         /* title-bar blue */
+  --btn-face:#e0e0e0;
+  --btn-shadow:#808080;
+  --btn-hilite:#fff;
+}
+*{box-sizing:border-box;font-family:system-ui,Segoe UI,Tahoma,Verdana,Arial,sans-serif;}
+body{
+  margin:0;
+  background:var(--win-grey);
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;   /* change to center for full V-centering */
+  min-height:100vh;
+  padding:40px 12px;
+}
+
+/* ---------- “window” ---------- */
+.container{
+  width:100%;max-width:600px;background:#fff;
+  border:2px solid #000;                /* outer frame */
+  box-shadow:inset 1px 1px 0 var(--btn-hilite),
+             inset -1px -1px 0 var(--btn-shadow);
+}
+
+/* title bar */
+.title-bar{
+  background:var(--win-blue);
+  color:#fff;
+  padding:6px 10px;
+  font-weight:bold;
+  font-size:0.9rem;
+  letter-spacing:0.5px;
+  display:flex;justify-content:center;
+}
+
+/* content padding */
+.inner{
+  padding:24px 20px;
+}
+
+/* ---------- inputs ---------- */
+.input, .btn{
+  width:100%;
+  font-size:1rem;
+  margin-bottom:16px;
+}
+.input{
+  padding:8px 10px;
+  border:2px solid #000;
+  background:var(--btn-face);
+  box-shadow:inset 1px 1px 0 var(--btn-hilite),
+             inset -1px -1px 0 var(--btn-shadow);
+}
+.input:focus{outline:none;border-color:var(--win-blue);}
+
+/* ---------- button ---------- */
+.btn{
+  padding:10px 0;
+  background:var(--btn-face);
+  border:2px solid #000;
+  cursor:pointer;
+  box-shadow:1px 1px 0 var(--btn-shadow),
+             -1px -1px 0 var(--btn-hilite);
+  font-weight:600;
+}
+.btn:hover{background:#d7d7d7;}
+
+/* ---------- log & results ---------- */
+.box{
+  background:#fff;
+  border:2px solid #000;
+  box-shadow:inset 1px 1px 0 var(--btn-hilite),
+             inset -1px -1px 0 var(--btn-shadow);
+  padding:10px;
+  word-break:break-word;
+}
+.log{height:90px;overflow-y:auto;font-size:0.85rem;margin-bottom:16px;}
+.results{display:none;margin-top:16px;}
+.loading{font-weight:bold;text-align:center;margin:12px 0;}
+
+/* ---------- contacts table ---------- */
+#contacts-section h2{
+  text-align:center;margin:26px 0 10px;font-size:1rem;
+}
+.contacts-wrapper{
+  max-height:260px;overflow-y:auto;
+  border:2px solid #000;
+  box-shadow:inset 1px 1px 0 var(--btn-hilite),
+             inset -1px -1px 0 var(--btn-shadow);
+}
+#contacts-table{
+  width:100%;border-collapse:collapse;font-size:.9rem;
+}
+#contacts-table thead{
+  background:#d9d9d9;
+}
+#contacts-table th,#contacts-table td{
+  border:1px solid #808080;
+  padding:6px 8px;
+}
+#contacts-table tbody tr:nth-child(odd){
+  background:#f0f0f0;
+}
+#contacts-table td{
+  max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.api-key-section {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.api-key-section .input {
+  flex: 1;
+}
+
+.api-key-section .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 </style>
 </head>
 <body>
+
 <div class="container">
-    <h1>Contact Search Console</h1>
+  <div class="title-bar">Contact Search Console</div>
+  <div class="inner">
+    <div class="api-key-section">
+      <input id="apiKey" class="input" type="password" placeholder="Enter OpenAI API Key">
+      <button class="btn" onclick="saveApiKey()">Save API Key</button>
+      <button class="btn" onclick="clearApiKey()">Clear Saved Key</button>
+    </div>
 
-    <input id="apiKey" class="retro-input" type="password" placeholder="Enter OpenAI API Key" autocomplete="off">
-    <input id="query" class="retro-input" type="text" placeholder="Search for a contact...">
-    <button class="retro-btn" onclick="performSearch()">SEARCH</button>
+    <input id="query"  class="input" type="text" placeholder="Search for a contact…">
+    <button class="btn" onclick="performSearch()">Search</button>
 
-    <div class="log-area" id="logArea"></div>
-    <div class="loading" id="loading" style="display:none;">Loading...</div>
-    <div class="results" id="results"></div>
+    <div id="logArea" class="box log"></div>
+    <div id="loading" class="loading" style="display:none;">Loading…</div>
+    <div id="results" class="box results"></div>
 
     <div id="contacts-section">
-        <h2>Saved Contacts</h2>
-        <div class="contacts-wrapper">
-            <table id="contacts-table">
-                <thead>
-                    <tr>
-                        <th>Email</th><th>Phone</th><th>Source</th><th>Timestamp</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
+      <h2>Saved Contacts</h2>
+      <div class="contacts-wrapper">
+        <table id="contacts-table">
+          <thead>
+            <tr><th>Email</th><th>Phone</th><th>Source</th><th>Timestamp</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
+  </div>
 </div>
 
 <script>
+let eventSource = null;
+
 function logMessage(msg){
-    const area=document.getElementById('logArea');
-    area.innerHTML+=`&gt; ${msg}<br>`;area.scrollTop=area.scrollHeight;
+  const area=document.getElementById('logArea');
+  area.innerHTML+=`&gt; ${msg}<br>`;
+  area.scrollTop=area.scrollHeight;
 }
+
+function updateContactsTable(contacts) {
+  const tbody = document.querySelector('#contacts-table tbody');
+  contacts.forEach(c => {
+    tbody.insertAdjacentHTML('beforeend',`
+      <tr>
+        <td>${c.email||''}</td><td>${c.phone||''}</td>
+        <td>${c.source||''}</td><td>${c.timestamp||''}</td>
+      </tr>`);
+  });
+}
+
+function startProgressStream() {
+  if (eventSource) {
+    eventSource.close();
+  }
+  
+  eventSource = new EventSource('/search-progress');
+  
+  eventSource.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    
+    if (data.type === 'heartbeat') {
+      return; // Ignore heartbeat messages
+    }
+    
+    if (data.type === 'status') {
+      logMessage(data.message);
+    } else if (data.type === 'contacts_found') {
+      logMessage(`Found ${data.contacts.length} contacts from ${data.source}`);
+      updateContactsTable(data.contacts);
+    } else if (data.type === 'error') {
+      logMessage(`Error: ${data.message}`);
+      eventSource.close();
+    }
+  };
+  
+  eventSource.onerror = function() {
+    logMessage('Connection to progress stream lost');
+    eventSource.close();
+  };
+}
+
 async function performSearch(){
-    const apiKey=document.getElementById('apiKey').value.trim();
-    const query=document.getElementById('query').value.trim();
-    const resBox=document.getElementById('results');
-    const spinner=document.getElementById('loading');
-    resBox.style.display='none';spinner.style.display='block';
-    logMessage('Starting search...');
-    if(!apiKey){logMessage('Missing API key!');spinner.style.display='none';return;}
-    if(!query){logMessage('Missing search query!');spinner.style.display='none';return;}
-    logMessage('Sending request to server...');
-    try{
-        const r=await fetch('/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:apiKey,query})});
-        const data=await r.json();
-        spinner.style.display='none';resBox.style.display='block';
-        if(data.result){logMessage('Search complete!');resBox.textContent=data.result;}
-        else if(data.error){logMessage('Error: '+data.error);resBox.textContent=data.error;}
-        else{logMessage('Unknown response from server.');}
-    }catch{spinner.style.display='none';logMessage('Network or server error.');}
+  const apiKey=document.getElementById('apiKey').value.trim();
+  const query=document.getElementById('query').value.trim();
+  const resBox=document.getElementById('results');
+  const spinner=document.getElementById('loading');
+  resBox.style.display='none';
+  spinner.style.display='block';
+  
+  if(!apiKey){logMessage('Missing API key!');spinner.style.display='none';return;}
+  if(!query){logMessage('Missing search query!');spinner.style.display='none';return;}
+  
+  // Start listening for progress updates
+  startProgressStream();
+  
+  try{
+    const r=await fetch('/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:apiKey,query})});
+    const data=await r.json();
+    spinner.style.display='none';
+    resBox.style.display='block';
+    if(data.result){
+      logMessage('Search complete!');
+      resBox.textContent=data.result;
+    }
+    else if(data.error){
+      logMessage('Error: '+data.error);
+      resBox.textContent=data.error;
+    }
+    else{
+      logMessage('Unknown response from server.');
+    }
+  }catch(e){
+    spinner.style.display='none';
+    logMessage('Network or server error.');
+  } finally {
+    if (eventSource) {
+      eventSource.close();
+    }
+  }
 }
+
 async function loadContacts(){
-    const res=await fetch('/contacts');
-    const contacts=await res.json();
-    const tbody=document.querySelector('#contacts-table tbody');
-    tbody.innerHTML='';
-    contacts.forEach(c=>{
-        tbody.innerHTML+=`
-            <tr>
-                <td>${c.email||''}</td>
-                <td>${c.phone||''}</td>
-                <td>${c.source||''}</td>
-                <td>${c.timestamp||''}</td>
-            </tr>`;
-    });
+  const res=await fetch('/contacts');
+  const contacts=await res.json();
+  const tbody=document.querySelector('#contacts-table tbody');
+  tbody.innerHTML='';
+  contacts.forEach(c=>{
+    tbody.insertAdjacentHTML('beforeend',`
+      <tr>
+        <td>${c.email||''}</td><td>${c.phone||''}</td>
+        <td>${c.source||''}</td><td>${c.timestamp||''}</td>
+      </tr>`);
+  });
 }
-setInterval(loadContacts,5000);
-window.onload=loadContacts;
+
+async function loadSavedApiKey() {
+  try {
+    const response = await fetch('/api-key');
+    const data = await response.json();
+    if (data.api_key) {
+      document.getElementById('apiKey').value = data.api_key;
+      logMessage('Loaded saved API key');
+    }
+  } catch (e) {
+    logMessage('Error loading saved API key');
+  }
+}
+
+async function saveApiKey() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) {
+    logMessage('Please enter an API key to save');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: apiKey })
+    });
+    const data = await response.json();
+    if (data.status === 'success') {
+      logMessage('API key saved successfully');
+    } else {
+      logMessage('Error saving API key: ' + (data.error || 'Unknown error'));
+    }
+  } catch (e) {
+    logMessage('Error saving API key');
+  }
+}
+
+async function clearApiKey() {
+  try {
+    const response = await fetch('/api-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: '' })
+    });
+    document.getElementById('apiKey').value = '';
+    logMessage('API key cleared');
+  } catch (e) {
+    logMessage('Error clearing API key');
+  }
+}
+
+// Load saved API key when page loads
+window.onload = function() {
+  loadSavedApiKey();
+  loadContacts();
+};
 </script>
 </body>
 </html>

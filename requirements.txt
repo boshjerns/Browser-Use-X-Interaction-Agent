@@ -1,5 +1,5 @@
 flask==3.0.2
-python-dotenv==1.0.1
-browser-use
-langchain-openai
-playwright 
+langchain-openai==0.0.8
+browser-use==0.1.0
+cryptography==45.0.2
+python-dotenv==1.0.1 

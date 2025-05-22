@@ -31,7 +31,14 @@ ENV/
 *.swp
 *.swo
 
-# OS
+# Application specific
+.env
+.encrypted_api_key
+.api_key
+contacts.json
+*.log
+
+# OS specific
 .DS_Store
 Thumbs.db
 

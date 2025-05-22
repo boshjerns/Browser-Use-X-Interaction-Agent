@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
 from langchain_openai import ChatOpenAI
 from browser_use import Agent
 import asyncio
@@ -8,11 +8,40 @@ import logging
 from datetime import datetime
 import json
 import re
+import queue
+import threading
+from cryptography.fernet import Fernet
+import base64
+from pathlib import Path
 
 app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Global queue to store search progress updates
+search_progress = queue.Queue()
+
+# Initialize encryption key
+def get_or_create_key():
+    key_file = Path('.api_key')
+    if key_file.exists():
+        return key_file.read_bytes()
+    key = Fernet.generate_key()
+    key_file.write_bytes(key)
+    return key
+
+# Initialize Fernet cipher
+cipher = Fernet(get_or_create_key())
+
+def encrypt_api_key(api_key):
+    return cipher.encrypt(api_key.encode()).decode()
+
+def decrypt_api_key(encrypted_key):
+    try:
+        return cipher.decrypt(encrypted_key.encode()).decode()
+    except Exception:
+        return None
 
 @app.route('/')
 def home():
@@ -58,6 +87,20 @@ def get_contacts():
     except (FileNotFoundError, json.JSONDecodeError):
         contacts = []
     return jsonify(contacts)
+
+@app.route('/search-progress')
+def search_progress_stream():
+    def generate():
+        while True:
+            try:
+                # Get the next progress update from the queue
+                progress = search_progress.get(timeout=30)  # 30 second timeout
+                yield f"data: {json.dumps(progress)}\n\n"
+            except queue.Empty:
+                # Send a heartbeat to keep the connection alive
+                yield "data: {\"type\": \"heartbeat\"}\n\n"
+
+    return Response(generate(), mimetype='text/event-stream')
 
 @app.route('/search', methods=['POST'])
 def search():
@@ -123,12 +166,28 @@ def search():
                 })
         if found_contacts:
             save_contacts_stepwise(agent.task, found_contacts)
+            # Send progress update
+            search_progress.put({
+                'type': 'contacts_found',
+                'contacts': found_contacts,
+                'source': source
+            })
 
     async def run_agent():
         agent = Agent(task=robust_prompt, llm=model)
         logger.info('Initialized Agent')
+        # Send initial progress update
+        search_progress.put({
+            'type': 'status',
+            'message': 'Starting search...'
+        })
         result = await agent.run(on_step_end=on_step_end, max_steps=100)
         logger.info('Agent run complete')
+        # Send final progress update
+        search_progress.put({
+            'type': 'status',
+            'message': 'Search complete'
+        })
         if hasattr(result, 'final_result'):
             final = result.final_result()
             logger.info(f'Final result: {final}')
@@ -149,7 +208,43 @@ def search():
         return jsonify({'result': result})
     except Exception as e:
         logger.error(f'Error during search: {e}')
+        # Send error progress update
+        search_progress.put({
+            'type': 'error',
+            'message': str(e)
+        })
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api-key', methods=['POST'])
+def save_api_key():
+    data = request.get_json()
+    api_key = data.get('api_key')
+    
+    if not api_key:
+        return jsonify({'error': 'API key is required'}), 400
+        
+    try:
+        # Encrypt and save the API key
+        encrypted_key = encrypt_api_key(api_key)
+        with open('.encrypted_api_key', 'w') as f:
+            f.write(encrypted_key)
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        logger.error(f'Error saving API key: {e}')
+        return jsonify({'error': 'Failed to save API key'}), 500
+
+@app.route('/api-key', methods=['GET'])
+def get_api_key():
+    try:
+        if os.path.exists('.encrypted_api_key'):
+            with open('.encrypted_api_key', 'r') as f:
+                encrypted_key = f.read().strip()
+            api_key = decrypt_api_key(encrypted_key)
+            if api_key:
+                return jsonify({'api_key': api_key})
+    except Exception as e:
+        logger.error(f'Error retrieving API key: {e}')
+    return jsonify({'api_key': None})
 
 if __name__ == '__main__':
     app.run(debug=True) 
