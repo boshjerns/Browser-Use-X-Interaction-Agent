@@ -1,25 +1,16 @@
 <div align="center">
 
-<img src="docs/assets/banner_win98.png" alt="Browser-Use Contact Discovery Agent" width="600"/>
+# 🔎 Browser-Use Contact Discovery Agent  
+**Real-time, AI-powered contact hunting with a dash of Windows-95 nostalgia**
 
-**Real-time, AI-powered contact hunting — now with Windows-95 vibes**  
-<br/>
-
-<!-- badges -->
-<a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
-<img alt="Python" src="https://img.shields.io/badge/Python-3.8%2B-blue?logo=python">
-<a href="https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent/issues">
-  <img alt="Issues" src="https://img.shields.io/github/issues/boshjerns/BrowserUse--Contact-Discovery-Agent?logo=github">
-</a>
-<a href="https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent/stargazers">
-  <img alt="Stars" src="https://img.shields.io/github/stars/boshjerns/BrowserUse--Contact-Discovery-Agent?style=social">
-</a>
-
-<br/><br/>
-
-<img src="docs/assets/demo.gif" alt="30-second demo" width="600"/>
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)
+[![Issues](https://img.shields.io/github/issues/boshjerns/BrowserUse--Contact-Discovery-Agent?logo=github)](https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent/issues)
+[![Stars](https://img.shields.io/github/stars/boshjerns/BrowserUse--Contact-Discovery-Agent?style=social)](https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent/stargazers)
 
 </div>
+
+A lightweight Flask app that automates your browser to scour the web for **emails, phone numbers, and social handles**—then streams the results to you in real time. Perfect for founders, recruiters, sales teams, and curious hackers who need fresh contacts _now_ rather than _sometime next week_.
 
 ---
 
@@ -27,71 +18,34 @@
 
 | ⚡ Feature | 🚀 What It Delivers |
 |-----------|--------------------|
-| **Live browser automation** | Chrome/Edge driven by [Browser-Use](https://docs.browser-use.com) with smart retries & captcha handling |
-| **Instant progress feed**   | WebSocket logs update in real time — no more staring at a spinner |
-| **LLM-assisted parsing**    | LangChain + OpenAI extract emails/phones from messy HTML |
-| **Deduped contact vault**   | Normalizes & stores contacts in SQLite; swap in Postgres if you like |
-| **Secure secrets**          | AES-GCM–encrypted API keys (no plaintext in Git or logs) |
-| **Retro Win-95 UI**         | Pixel-perfect buttons, grey panels & a splash of neon |
+| **Live browser automation** | Chrome/Edge driven by [Browser-Use](https://docs.browser-use.com) with smart retries and captcha handling |
+| **Instant progress feed**   | WebSocket logs update as each page is parsed—no more staring at a loading spinner |
+| **LLM-assisted parsing**    | LangChain + OpenAI extract structured contacts from messy HTML |
+| **Deduped contact vault**   | Normalizes & stores contacts in `sqlite` (or plug in Postgres) to avoid duplicates |
+| **Secure secrets**          | AES-GCM–encrypted API keys; no plaintext keys in Git or logs |
+| **Retro Win-95 UI**         | Pixel-perfect buttons, gray panels, and a splash of neon green for that _dial-up_ vibe |
 
 ---
 
 ## 📸 Screenshots
 
-<table>
-  <tr>
-    <td align="center"><img src="docs/screenshots/search.png"  alt="Search UI"  width="260"/></td>
-    <td align="center"><img src="docs/screenshots/results.png" alt="Results UI" width="260"/></td>
-    <td align="center"><img src="docs/screenshots/db_view.png" alt="DB View"    width="260"/></td>
-  </tr>
-</table>
+| Search Panel |
+|--------------|
+| ![Search UI](docs/screenshots/search.png) |
 
-<details>
-<summary>More screenshots (click to expand)</summary>
-
-<p align="center">
-  <img src="docs/screenshots/contact_card.png" width="280" alt="Contact Card"/>
-  <img src="docs/screenshots/settings.png"     width="280" alt="Settings"/>
-</p>
-
-</details>
-
----
-
-## 🗺️ How It Works
-
-```mermaid
-flowchart TD
-    subgraph Frontend (Flask)
-        UI[Retro Win-95 UI] --> WS(WebSocket)
-    end
-    subgraph Backend
-        WS --> Worker["Async Task<br/>(Browser-Use + LangChain)"]
-        Worker --> DB[(SQLite)]
-        Worker -->|contact JSON| UI
-    end
-```
+> _Don't see images?_ Run the app locally and they'll be generated in `docs/screenshots/`.
 
 ---
 
 ## 🚀 Quick Start
 
 ```bash
+# 1. Clone
 git clone https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent.git
 cd BrowserUse--Contact-Discovery-Agent
+
+# 2. Install deps (create a venv if you like)
 pip install -r requirements.txt
-python app.py            # then open http://127.0.0.1:5000
-```
 
-> **Heads-up:** first run grabs the Docker Chromium image (≈ 100 MB) — subsequent launches are instant.
-
----
-
-## 🙌 Contributing
-
-Bug reports and PRs welcome!  
-If you build something cool on top of this, let me know — I’ll add a “made-with” showcase.
-
-## 📖 License
-
-[MIT](LICENSE)
+# 3. Fire it up
+python app.py
