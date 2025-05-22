@@ -1,6 +1,6 @@
 # Contact Finder Agent
 
-[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-blue)](https://github.com/boshjerns/Browser-Use-Quick-Contact-Search-Module-/tree/main)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-blue)](https://github.com/boshjerns/Browser-Use-Quick-Contact-Search-Module-)
 
 A powerful web application built on top of [browser-use](https://github.com/your-username/browser-use) that leverages AI to automatically search for and collect contact information from across the web. This application uses an intelligent agent to find, extract, and save contact details including email addresses and phone numbers.
 
