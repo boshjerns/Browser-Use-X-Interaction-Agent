@@ -77,11 +77,7 @@ python app.py                          # then open http://127.0.0.1:5000
 This project **forks and extends** the excellent **[Browser-Use](https://github.com/browser-use/browser-use)** library by Gregor Žunič & Magnus Müller.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)"  srcset="docs/assets/browser-use-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/browser-use.png">
-    <img alt="Browser-Use logo" src="docs/assets/browser-use.png" width="220">
-  </picture>
+  <img alt="Browser-Use logo" src="docs/assets/browser-use.png" width="220">
 </p>
 
 Huge thanks to the Browser-Use community for paving the way in AI-driven browser automation. Jump into their [Discord](https://link.browser-use.com/discord) to see what others are building!
