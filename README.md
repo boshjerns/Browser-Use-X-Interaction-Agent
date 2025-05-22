@@ -31,7 +31,7 @@ A lightweight Flask app that automates your browser to scour the web for **email
 
 | Contact Search Console | Cat enjoying the app |
 |------------------------|----------------------|
-| ![Contact Search Console](docs/screenshots/contact_search_console.png) | ![Cat at computer](docs/screenshots/cat_at_computer.png) |
+| ![Contact Search Console](docs/screenshots/download.png) | ![Cat at computer](docs/screenshots/IMG_5247.jpg) |
 
 > _Don't see images?_ If you're viewing this on GitHub, the images above should be visible. If running locally and they are missing, ensure they are placed in the `docs/screenshots/` directory.
 
