@@ -29,11 +29,11 @@ A lightweight Flask app that automates your browser to scour the web for **email
 
 ## 📸 Screenshots
 
-| Search Panel | Live Log Stream | Contact Table |
-|--------------|-----------------|---------------|
-| ![Search UI](docs/screenshots/search.png) | ![Log Stream](docs/screenshots/logs.gif) | ![Table](docs/screenshots/table.png) |
+| Search Panel |
+|--------------|
+| ![Search UI](docs/screenshots/search.png) |
 
-> _Don’t see images?_ Run the app locally and they’ll be generated in `docs/screenshots/`.
+> _Don't see images?_ Run the app locally and they'll be generated in `docs/screenshots/`.
 
 ---
 
