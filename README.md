@@ -33,8 +33,8 @@ A powerful web application built on top of [browser-use](https://github.com/your
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/contact-finder.git
-cd contact-finder
+git clone https://github.com/boshjerns/Browser-Use-Quick-Contact-Search-Module-.git
+cd Browser-Use-Quick-Contact-Search-Module-
 ```
 
 2. Install dependencies:
