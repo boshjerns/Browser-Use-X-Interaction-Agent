@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, Response
 from langchain_openai import ChatOpenAI
-from browser_use import Agent
+from browser_use import Agent, Browser, BrowserConfig
 import asyncio
 import os
 from dotenv import load_dotenv
@@ -19,10 +19,10 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global queue to store search progress updates
+# Global queue to store search progress updates (will be used for X.com updates)
 search_progress = queue.Queue()
 
-# Initialize encryption key
+# Initialize encryption key (kept for API key)
 def get_or_create_key():
     key_file = Path('.api_key')
     if key_file.exists():
@@ -48,56 +48,6 @@ def home():
     logger.info('Rendering home page')
     return render_template('index.html')
 
-def extract_emails_and_phones(text):
-    email_pattern = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
-    phone_pattern = r'(\+?\d[\d\s().-]{7,}\d)'
-    emails = re.findall(email_pattern, text)
-    phones = re.findall(phone_pattern, text)
-    return emails, phones
-
-def deduplicate_contacts(existing, new_contacts):
-    # Use a set of (email, phone) tuples for deduplication
-    seen = set((c.get('email',''), c.get('phone','')) for c in existing)
-    unique = []
-    for c in new_contacts:
-        key = (c.get('email',''), c.get('phone',''))
-        if key not in seen and (c.get('email') or c.get('phone')):
-            unique.append(c)
-            seen.add(key)
-    return existing + unique
-
-def save_contacts_stepwise(target, contacts):
-    try:
-        with open("contacts.json", "r") as f:
-            all_contacts = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        all_contacts = []
-    for contact in contacts:
-        contact['target'] = target
-        contact['timestamp'] = datetime.utcnow().isoformat()
-    all_contacts = deduplicate_contacts(all_contacts, contacts)
-    with open("contacts.json", "w") as f:
-        json.dump(all_contacts, f, indent=2)
-
-@app.route('/contacts', methods=['GET'])
-def get_contacts():
-    try:
-        with open("contacts.json", "r") as f:
-            contacts = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        contacts = []
-    return jsonify(contacts)
-
-@app.route('/contacts', methods=['DELETE'])
-def delete_all_contacts():
-    try:
-        if os.path.exists("contacts.json"):
-            os.remove("contacts.json")
-        return jsonify({'status': 'success', 'message': 'All contacts deleted.'})
-    except Exception as e:
-        logger.error(f'Error deleting contacts: {e}')
-        return jsonify({'error': 'Failed to delete contacts'}), 500
-
 @app.route('/search-progress')
 def search_progress_stream():
     def generate():
@@ -118,224 +68,172 @@ def search():
     data = request.get_json()
     api_key = data.get('api_key')
     query = data.get('query')
+    interaction_options = data.get('interactions', {})
     logger.info(f'API key provided: {bool(api_key)}, Query: {query}')
 
     if not api_key or not query:
         logger.warning('Missing API key or query')
         return jsonify({'error': 'API key and query are required'}), 400
 
-    os.environ['OPENAI_API_KEY'] = api_key
-    logger.info('Set OpenAI API key')
+    # API key is now handled by the /api-key endpoint and dotenv
+    os.environ['OPENAI_API_KEY'] = api_key # Keep this line to set the key for the agent
+    logger.info('Set OpenAI API key from request')
 
-    model = ChatOpenAI(model="gpt-4o")
+    model = ChatOpenAI(model="gpt-4o") # Using gpt-4o as recommended for browser-use
     logger.info('Initialized ChatOpenAI model')
 
-    robust_prompt = (
-        f"As you search for contact information for {query}, collect every email address and phone number you find, including those for managers, assistants, agencies, or related contacts. "
-        "After each relevant page or step, output a JSON array of all contacts found so far, with fields: 'role', 'name', 'email', 'phone', and 'source' (the URL or page name). "
-        "Continue searching and updating the list until no more new contacts are found or all reasonable sources are exhausted. "
-        "If you encounter a page requiring human verification (e.g., a captcha or login you cannot bypass), do not use the 'ask_human' action. Instead, navigate back and try a different search result or an alternative strategy to find the information."
+    # Rework the prompt for X.com interaction
+    x_com_task_prompt = (
+        f"You are an AI agent interacting on X.com (formerly Twitter) as a user. Your goal is to " \
+        f"perform the following task: {query}. This might involve browsing the feed, liking posts, " \
+        f"bookmarking, reposting, or commenting based on the user's typical interaction style. " \
+        f"After navigating to X.com, find and visit the profile of the logged-in user **SOLEY to observe their typical interaction style by examining their Tweets, Replies, Likes, and Media sections.** Do NOT interact with any content while on the user's own profile page. " \
+        f"Before interacting with any tweet, perform a thorough check to ensure it is NOT an advertisement. " \
+        f"Advertisements can be indicated in many ways on X: a visible label text such as 'Ad', 'Promoted', 'Sponsored', or 'Promoted by', an <span> element with classes similar to css-1jxf684 or generic r-qvutc0 containing those words, an aria-label attribute containing 'Ad', or a sub-label near the account name that reads 'Ad' or 'Promoted'. They may also include a small diagonal-arrow icon and lack normal engagement counts. " \
+        f"ALWAYS locate the nearest enclosing tweet/article container element before deciding. Within that container search (case-insensitive) for the words 'ad', 'promoted', or 'sponsored' in either visible text content, aria-labels, alt text or title attributes. If ANY such marker is found, treat the tweet as an advertisement and IGNORE IT COMPLETELY. Do not click, like, bookmark, repost, comment, or even expand it. Scroll past it. " \
+        f"If your vision tools cannot conclusively determine that the tweet is *not* an ad, default to **NO INTERACTION**. Interact only with tweets you have positively confirmed to be organic (non-advertisement) content. " \
+        f"Based on the task and allowed interactions ({interaction_options}), **after analyzing the profile, navigate to the main feed to browse.** " \
+        f"Scroll through the feed sufficiently to find diverse posts from **other users** that are relevant to the initial task and align with the user's observed interaction style and interests. For each post from another user, carefully evaluate its content, relevance to the task, and alignment with the user's observed interaction style and interests BEFORE deciding to like or bookmark. " \
+        f"While browsing the main timeline, **actively and repeatedly scroll down** (for example by issuing `scroll` or `page-down` style actions) so that you continuously load fresh tweets well beyond the first screenful. " \
+        f"After each scroll, pause just long enough for new content to appear, then interpret the newly visible tweets one-by-one before deciding whether any interaction is appropriate. Continue this scroll-observe-interpret loop until you have assessed a meaningful variety of posts (at least several full viewport heights or roughly 40-50 distinct tweets) or until you have confidently fulfilled the user's task. " \
+        f"Specifically, when considering liking or bookmarking, identify and understand the content and author of the specific tweet you are about to interact with. This context is crucial for making appropriate decisions. " \
+        f"If commenting is allowed ({interaction_options.get('comments', False)}), perform a deeper analysis of the tweet from another user and its context. Use your intelligence (the underlying language model) to craft a relevant, thoughtful, and contextually appropriate comment that aligns with the user's style. Avoid generic comments. " \
+        f"For relevant posts from **other users** that align with the user's preferences, perform allowed interactions: " \
+        f"- If liking is allowed ({interaction_options.get('likes', False)}), and the post is suitable, click the like button. " \
+        f"- If bookmarking is allowed ({interaction_options.get('bookmarks', False)}), and the post is suitable, click the bookmark button. " \
+        f"- If reposting is allowed ({interaction_options.get('reposts', False)}), click the repost button. " \
+        f"- If commenting is allowed ({interaction_options.get('comments', False)}), find the comment field and type a relevant comment. " \
+        f"Report progress and any significant findings (like posts interacted with, including their content or author if possible) through the progress stream."\
+        f"Avoid asking human for help or getting stuck on captchas/logins. Prioritize browsing and interacting."
     )
 
     async def run_agent():
-        # Create a handler for processing steps
-        # This handler receives the agent instance after each step execution
+        # Create a handler for processing steps (reworked for X.com)
         async def step_handler(agent_instance):
-            """Callback executed after each agent step to extract contacts and push SSE updates."""
-            # Ensure the agent has history to inspect
+            """Callback executed after each agent step to process X.com activity and push SSE updates."""
+            # Ensure the agent has state history to inspect
             if not hasattr(agent_instance, 'state') or not agent_instance.state.history:
                 return
 
             history = agent_instance.state.history
-            # Get the most recent extracted content and URL from the history
-            extracted_content_list = history.extracted_content() # Note: This gets all extracted content so far
-            current_url_source = history.urls()[-1] if history.urls() else "Unknown Source"
+            current_url = history.urls()[-1] if history.urls() else "Unknown Source"
+            
+            # Log agent thoughts and actions
+            latest_thought = history.model_thoughts()[-1] if history.model_thoughts() else "No thoughts"
+            latest_action = history.model_actions()[-1] if history.model_actions() else "No action"
+            latest_output = history.model_outputs()[-1] if history.model_outputs() else "No output"
 
-            contacts_for_this_step = [] # Stores all unique contacts found in this specific step processing
+            logger.info(f"Step_handler: URL: {current_url}, Thought: {latest_thought}, Action: {latest_action}, Output: {latest_output}")
 
-            # Process the most recent extracted content block
-            if extracted_content_list:
-                latest_content_block = extracted_content_list[-1]
+            # Push updates to frontend based on agent's action and state
+            status_message = f'Browsing: {current_url}'
+            # Add the agent's next goal to the status message
+            latest_next_goal = "No defined goal"
+            if hasattr(agent_instance, 'state') and hasattr(agent_instance.state, 'current_state') and hasattr(agent_instance.state.current_state, 'next_goal'):
+                 latest_next_goal = agent_instance.state.current_state.next_goal
 
-                # Set to keep track of (email, phone) tuples from JSON in this step to avoid re-adding by regex
-                json_parsed_identifiers_this_step = set()
+            if latest_next_goal != "No defined goal":
+                 status_message += f' | Next Goal: {latest_next_goal}'
 
-                # 1. Try to parse JSON array from the latest content block
-                try:
-                    json_start = latest_content_block.find('[')
-                    json_end = latest_content_block.rfind(']')
-                    if json_start != -1 and json_end != -1 and json_end > json_start:
-                        json_str = latest_content_block[json_start : json_end + 1]
-                        parsed_json_contacts = json.loads(json_str)
-                        if isinstance(parsed_json_contacts, list):
-                            for c in parsed_json_contacts:
-                                if isinstance(c, dict):
-                                    if 'source' not in c or not c['source']:
-                                        c['source'] = current_url_source
-                                    # Ensure essential fields
-                                    c.setdefault('role', 'Unknown')
-                                    c.setdefault('name', '')
-                                    c_email = c.setdefault('email', '')
-                                    c_phone = c.setdefault('phone', '')
+            search_progress.put({
+                'type': 'status',
+                'message': status_message
+            })
+            
+            # Add logic here to identify specific interaction actions and report them
+            if latest_action and 'name' in latest_action:
+                action_name = latest_action['name']
+                # You would need more sophisticated logic here to know *what* was liked/bookmarked etc.
+                # This is a basic example just reporting the action name.
+                if action_name in ['click', 'type']:
+                    # Attempt to get some context about the interaction from the output or history
+                    interaction_context = latest_output if latest_output != "No output" else ""
+                    message = f'Agent performed action: {action_name}'
+                    if interaction_context:
+                         message += f' (Details: {interaction_context[:100]}...)' # Limit context length
+                    search_progress.put({
+                        'type': 'status',
+                        'message': message
+                    })
 
-                                    contacts_for_this_step.append(c)
-                                    if c_email:
-                                        json_parsed_identifiers_this_step.add((c_email.lower(), 'email'))
-                                    if c_phone:
-                                        json_parsed_identifiers_this_step.add((c_phone, 'phone'))
-                            logger.info(f"Step_handler: Parsed {len(parsed_json_contacts)} contacts from JSON block.")
-                except json.JSONDecodeError as e:
-                    logger.warning(f'Step_handler: JSONDecodeError parsing content block from agent history: {e}. Will proceed with regex.')
-                except Exception as e:
-                    logger.error(f'Step_handler: Unexpected error parsing JSON from agent history: {e}. Proceeding with regex.')
-
-                # 2. Scan the same latest_content_block for emails/phones using regex
-                emails_from_regex, phones_from_regex = extract_emails_and_phones(latest_content_block)
-
-                for email_r in emails_from_regex:
-                    if (email_r.lower(), 'email') not in json_parsed_identifiers_this_step:
-                        contacts_for_this_step.append({
-                            'role': 'Unknown',
-                            'name': '',
-                            'email': email_r,
-                            'phone': '',
-                            'source': current_url_source
-                        })
-                        logger.info(f"Step_handler: Added new email from regex: {email_r}")
-
-                for phone_r in phones_from_regex:
-                    if (phone_r, 'phone') not in json_parsed_identifiers_this_step:
-                        contacts_for_this_step.append({
-                            'role': 'Unknown',
-                            'name': '',
-                            'email': '',
-                            'phone': phone_r,
-                            'source': current_url_source
-                        })
-                        logger.info(f"Step_handler: Added new phone from regex: {phone_r}")
-
-            if contacts_for_this_step:
-                # save_contacts_stepwise handles global deduplication before saving to contacts.json
-                # Use agent_instance.task as the target
-                save_contacts_stepwise(agent_instance.task if hasattr(agent_instance, 'task') else "Unknown Target", contacts_for_this_step)
-                # Send only the unique contacts found *in this step* to the frontend for logging
-                search_progress.put({
-                    'type': 'contacts_found',
-                    'contacts': contacts_for_this_step,
-                    'source': current_url_source
-                })
-                logger.info(
-                    f"Step_handler: Pushed {len(contacts_for_this_step)} unique contacts for this step to frontend/save."
-                )
+        # Configure Browser to connect to a real Chrome instance
+        # !! IMPORTANT !!: Replace the path below with the actual path to your Chrome executable.
+        # Common paths:
+        # Windows: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+        # macOS: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+        # Linux: '/usr/bin/google-chrome'
+        browser_config = BrowserConfig(
+            browser_binary_path='C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', # <<-- REPLACE WITH YOUR CHROME PATH
+            headless=False # Keep headless=False to see the browser window
+        )
+        browser = Browser(config=browser_config)
+        logger.info('Initialized Browser for real Chrome instance')
 
         # Instantiate the Agent
         agent = Agent(
-            task=robust_prompt,
+            task=x_com_task_prompt,
             llm=model,
-            use_vision=True,
+            use_vision=True, # Vision is essential for browsing X.com
+            browser=browser, # Pass the configured browser instance
+            # Start by opening x.com
+            initial_actions = [
+                {'open_tab': {'url': 'https://x.com'}},
+            ]
         )
-        logger.info('Initialized Agent')
+        logger.info('Initialized Agent for X.com task')
+
         # Send initial progress update
         search_progress.put({
             'type': 'status',
-            'message': 'Starting search...'
+            'message': 'Starting X.com interaction agent...'
         })
 
-        # Run the agent
-        # Pass the step_handler to the run method
-        logger.info("Attempting to run agent with on_step_end callback.")
-        result = await agent.run(max_steps=100, on_step_end=step_handler)
-        logger.info('Agent run complete')
+        result = None
+        agent_stopped_prematurely = False # Flag to indicate if max_steps was hit before agent was truly done
+        try:
+            logger.info(f"Attempting to run agent with on_step_end callback for max 40 steps.")
+            result = await agent.run(max_steps=40, on_step_end=step_handler) # Set max_steps to 40
+            logger.info('Agent run complete')
 
-        http_response_payload = str(result) # Default payload
+            http_response_payload = str(result) # Default payload
 
-        if hasattr(result, 'final_result'):
-            final = result.final_result()
-            logger.info(f'Final result: {final}')
+            if hasattr(result, 'final_result'):
+                final = result.final_result()
+                logger.info(f'Final result: {final}')
+                http_response_payload = final # Set the HTTP response to the final agent output
+                # Agent reached its own conclusion of 'done'
 
-            final_contacts_found = []
-            final_source_for_contacts = "Unknown"
+            # Check if the agent explicitly finished or hit max steps
+            if hasattr(result, 'state') and hasattr(result.state, 'is_done') and result.state.is_done:
+                 # Agent successfully completed its task
+                 search_progress.put({
+                     'type': 'status',
+                     'message': 'Task complete!'
+                 })
+            else:
+                 # Agent stopped, likely due to max_steps or an issue, but not explicitly 'done'
+                 agent_stopped_prematurely = True
+                 # Get the very last reported next goal from the history for the paused message
+                 last_goal = result.state.next_goals()[-1] if hasattr(result, 'state') and result.state.next_goals() else "Unknown"
+                 search_progress.put({
+                     'type': 'status',
+                     'message': f'Agent paused. Current goal: {last_goal}. Click Continue on frontend.'
+                 })
 
-            if final:
-                # Determine the source URL for these final contacts
-                source_match_in_final_text = re.search(r"Source:\s*(https?://[^\s,]+)", final, re.IGNORECASE)
-                if source_match_in_final_text:
-                    final_source_for_contacts = source_match_in_final_text.group(1)
-                elif hasattr(agent, 'state') and agent.state and hasattr(agent.state, 'history') and agent.state.history and agent.state.history.urls():
-                    final_source_for_contacts = agent.state.history.urls()[-1]
-                else:
-                    final_source_for_contacts = "Final result summary"
+        except Exception as e:
+            logger.error(f'Error during agent run: {e}')
+            # Send error progress update
+            search_progress.put({
+                'type': 'error',
+                'message': str(e)
+            })
+            http_response_payload = str(e)
+        finally:
+            # Ensure the browser is closed after the run
+            logger.info('Closing browser...')
+            await browser.close()
+            logger.info('Browser closed.')
 
-                # Attempt to parse structured JSON from the final string first
-                parsed_contacts_from_final = False
-                try:
-                    # The agent's output might be a string like "Collected contacts: [{"role": ...}]"
-                    # We need to extract the actual JSON part.
-                    json_start_index = final.find('[')
-                    json_end_index = final.rfind(']')
-                    if json_start_index != -1 and json_end_index != -1 and json_end_index > json_start_index:
-                        json_str_from_final = final[json_start_index : json_end_index + 1]
-                        contacts_from_json = json.loads(json_str_from_final)
-                        if isinstance(contacts_from_json, list):
-                            for c in contacts_from_json:
-                                if isinstance(c, dict):
-                                    if 'source' not in c or not c['source']:
-                                        c['source'] = final_source_for_contacts
-                                    # Ensure essential fields exist, even if empty, to prevent downstream errors
-                                    c.setdefault('role', 'Unknown')
-                                    c.setdefault('name', '')
-                                    c.setdefault('email', '')
-                                    c.setdefault('phone', '')
-                                    final_contacts_found.append(c)
-                            parsed_contacts_from_final = True
-                            logger.info(f"Successfully parsed {len(contacts_from_json)} contacts from final result JSON string.")
-                        else:
-                            logger.warning("Parsed JSON from final result was not a list.")
-                    else:
-                        logger.info("No JSON array found in final result string for direct parsing.")
-                except json.JSONDecodeError as e:
-                    logger.warning(f'JSONDecodeError when parsing final result: {e}. Will fall back to regex.')
-                except Exception as e:
-                    logger.error(f'Unexpected error parsing final result JSON: {e}. Will fall back to regex.')
-
-                # If JSON parsing failed or did not happen, fall back to regex extraction for emails/phones
-                if not parsed_contacts_from_final:
-                    logger.info("Falling back to regex extraction for final result.")
-                    emails, phones = extract_emails_and_phones(final)
-                    for email in emails:
-                        final_contacts_found.append({
-                            'role': 'Unknown',
-                            'name': '',
-                            'email': email,
-                            'phone': '',
-                            'source': final_source_for_contacts
-                        })
-                    for phone in phones:
-                        final_contacts_found.append({
-                            'role': 'Unknown',
-                            'name': '',
-                            'email': '',
-                            'phone': phone,
-                            'source': final_source_for_contacts
-                        })
-            
-            if final_contacts_found:
-                logger.info(f"Extracted contacts from final result: {final_contacts_found}")
-                # Ensure agent.task is appropriate for save_contacts_stepwise, it's the original query
-                save_contacts_stepwise(agent.task if hasattr(agent, 'task') else "Unknown Target", final_contacts_found)
-                search_progress.put({
-                    'type': 'contacts_found',
-                    'contacts': final_contacts_found,
-                    'source': final_source_for_contacts 
-                })
-            
-            http_response_payload = final # Set the HTTP response to the final agent output
-        
-        # Send "Search complete!" message AFTER all final processing and contact sending
-        search_progress.put({
-            'type': 'status',
-            'message': 'Search complete!'
-        })
         return http_response_payload
 
     try:
@@ -347,11 +245,21 @@ def search():
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+        
+        # Running the async agent in a separate thread to not block the Flask server
+        # This requires a bit more sophisticated handling than a simple run_until_complete
+        # For simplicity in this example, we'll stick to run_until_complete for now, 
+        # but be aware this can block the server for the duration of the agent run.
+        # A proper production setup would use a separate thread or process pool.
+        logger.info('Running agent asynchronously...')
         result = loop.run_until_complete(run_agent())
+        logger.info('Async agent run finished.')
+
         logger.info('Returning result to client')
         return jsonify({'result': result})
+
     except Exception as e:
-        logger.error(f'Error during search: {e}')
+        logger.error(f'Error setting up or running asyncio loop: {e}')
         # Send error progress update
         search_progress.put({
             'type': 'error',
@@ -391,4 +299,6 @@ def get_api_key():
     return jsonify({'api_key': None})
 
 if __name__ == '__main__':
+    # Make sure to load dotenv when running the app directly
+    load_dotenv()
     app.run(debug=True) 

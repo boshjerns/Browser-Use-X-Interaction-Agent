@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Contact Search Console</title>
+<title>X.com Interaction Agent</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
 /* ---------- palette & base ---------- */
@@ -87,36 +90,9 @@ body{
   padding:10px;
   word-break:break-word;
 }
-.log{height:90px;overflow-y:auto;font-size:0.85rem;margin-bottom:16px;}
+.log{height:150px;overflow-y:auto;font-size:0.85rem;margin-bottom:16px;}
 .results{display:none;margin-top:16px;}
 .loading{font-weight:bold;text-align:center;margin:12px 0;}
-
-/* ---------- contacts table ---------- */
-#contacts-section h2{
-  text-align:center;margin:26px 0 10px;font-size:1rem;
-}
-.contacts-wrapper{
-  max-height:260px;overflow-y:auto;
-  border:2px solid #000;
-  box-shadow:inset 1px 1px 0 var(--btn-hilite),
-             inset -1px -1px 0 var(--btn-shadow);
-}
-#contacts-table{
-  width:100%;border-collapse:collapse;font-size:.9rem;
-}
-#contacts-table thead{
-  background:#d9d9d9;
-}
-#contacts-table th,#contacts-table td{
-  border:1px solid #808080;
-  padding:6px 8px;
-}
-#contacts-table tbody tr:nth-child(odd){
-  background:#f0f0f0;
-}
-#contacts-table td{
-  max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
 
 .api-key-section {
   display: flex;
@@ -138,12 +114,150 @@ body{
   font-size: 0.8rem;
   margin-bottom: 0;
 }
+
+.interaction-options {
+  margin-bottom: 16px;
+  padding: 10px;
+  border: 2px solid #000;
+  background: var(--btn-face);
+  box-shadow: inset 1px 1px 0 var(--btn-hilite), inset -1px -1px 0 var(--btn-shadow);
+}
+
+.interaction-options label {
+  margin-right: 10px;
+  font-size: 0.9rem;
+}
+</style>
+
+<!-- New dark-mode neumorphic theme overrides -->
+<style>
+:root {
+  --bg:#0d0d0d;
+  --surface:#161616;
+  --accent:#1d9bf0;
+  --text:#e7e9ea;
+  --shadow-dark:#0a0a0a;
+  --shadow-light:#1a1a1a;
+  --radius:20px;
+  font-size:16px;
+}
+
+* {
+  box-sizing:border-box;
+  font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  color:var(--text);
+}
+
+body{
+  margin:0;
+  background:var(--bg);
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  min-height:100vh;
+  padding:40px 12px;
+}
+
+.container{
+  width:100%;
+  max-width:600px;
+  background:var(--surface);
+  border-radius:var(--radius);
+  box-shadow:8px 8px 16px var(--shadow-dark),-8px -8px 16px var(--shadow-light);
+  overflow:hidden;
+}
+
+.title-bar{
+  background:transparent;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  justify-content:center;
+  padding:20px;
+  font-weight:700;
+  font-size:1.1rem;
+  text-transform:uppercase;
+}
+
+.title-bar svg{
+  flex:none;
+  width:24px;
+  height:24px;
+  fill:var(--accent);
+}
+
+.inner{padding:24px 20px;}
+
+.input,.btn{
+  width:100%;
+  font-size:1rem;
+  margin-bottom:16px;
+  border-radius:var(--radius);
+}
+
+.input{
+  padding:14px 16px;
+  background:var(--surface);
+  border:none;
+  box-shadow:inset 8px 8px 16px var(--shadow-dark),inset -8px -8px 16px var(--shadow-light);
+}
+
+.input::placeholder{color:#555;}
+
+.input:focus{outline:2px solid var(--accent);}
+
+.btn{
+  padding:14px 0;
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  box-shadow:8px 8px 16px var(--shadow-dark),-8px -8px 16px var(--shadow-light);
+  font-weight:600;
+  transition:transform .15s ease,box-shadow .15s ease;
+}
+
+.btn:hover{
+  transform:translateY(-2px);
+  box-shadow:6px 6px 12px var(--shadow-dark),-6px -6px 12px var(--shadow-light);
+}
+
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+.box,.interaction-options{
+  background:var(--surface);
+  border-radius:var(--radius);
+  box-shadow:inset 8px 8px 16px var(--shadow-dark),inset -8px -8px 16px var(--shadow-light);
+}
+
+.box{padding:16px;word-break:break-word;}
+
+.log{height:150px;overflow-y:auto;font-size:.85rem;margin-bottom:16px;}
+
+.loading{font-weight:bold;text-align:center;margin:12px 0;}
+
+.api-key-section{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+
+.api-key-section .input{flex:1;margin-bottom:0;}
+
+.api-key-section .btn{flex:0 0 auto;width:auto;padding:10px 16px;font-size:.8rem;margin-bottom:0;}
+
+.interaction-options{margin-bottom:16px;padding:14px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;font-size:.9rem;}
+
+.interaction-options input[type="checkbox"]{accent-color:var(--accent);}
+
+.results{display:none;margin-top:16px;}
 </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="title-bar">Contact Search Console</div>
+  <div class="title-bar">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M23 0h-5l-7 9-7-9H0l8 11-8 13h5l7-9 7 9h5l-8-12 8-12z"/>
+    </svg>
+    <span>X Interaction Agent</span>
+  </div>
   <div class="inner">
     <div class="api-key-section">
       <input id="apiKey" class="input" type="password" placeholder="Enter OpenAI API Key">
@@ -151,30 +265,23 @@ body{
       <button class="btn" onclick="clearApiKey()">Clear Saved Key</button>
     </div>
 
-    <input id="query"  class="input" type="text" placeholder="Search for a contact…">
-    <button class="btn" onclick="performSearch()">Search</button>
+    <input id="query"  class="input" type="text" placeholder="What's happening?">
+    
+    <div class="interaction-options">
+        <span>Allowed Interactions:</span>
+        <label><input type="checkbox" id="allowLikes" checked> Like</label>
+        <label><input type="checkbox" id="allowBookmarks" checked> Bookmark</label>
+        <label><input type="checkbox" id="allowComments"> Comment</label>
+        <label><input type="checkbox" id="allowReposts"> Repost</label>
+    </div>
+
+    <button class="btn" onclick="performSearch()" id="startButton">Start</button>
+    <button class="btn" onclick="performSearch()" id="continueButton" style="display: none;">Continue</button>
 
     <div id="logArea" class="box log"></div>
-    <div id="loading" class="loading" style="display:none;">Loading…</div>
-    <div id="results" class="box results"></div>
+    <div id="loading" class="loading" style="display:none;">Working…</div>
+    <div id="results" class="box results">Agent Output:</div>
 
-    <div id="contacts-section">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-        <h2 style="margin: 0; font-size: 1rem;">Saved Contacts</h2>
-        <div>
-          <button class="btn" onclick="copyAllEmails()" style="margin-left: 10px; font-size: 0.75rem; padding: 5px 10px; width: auto;">Copy Emails</button>
-          <button class="btn" onclick="deleteAllContacts()" style="margin-left: 10px; font-size: 0.75rem; padding: 5px 10px; background-color: #d9534f; color: white; width: auto;">Delete All</button>
-        </div>
-      </div>
-      <div class="contacts-wrapper">
-        <table id="contacts-table">
-          <thead>
-            <tr><th>Email</th><th>Phone</th><th>Source</th><th>Timestamp</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -183,21 +290,10 @@ let eventSource = null;
 
 function logMessage(msg){
   const area=document.getElementById('logArea');
-  area.innerHTML+=`&gt; ${msg}<br>`;
+  const now = new Date();
+  const timestamp = now.toLocaleTimeString();
+  area.innerHTML+=`[${timestamp}] &gt; ${msg}<br>`;
   area.scrollTop=area.scrollHeight;
-}
-
-function updateContactsTable(contacts) {
-  const tbody = document.querySelector('#contacts-table tbody');
-  contacts.forEach(c => {
-    tbody.insertAdjacentHTML('beforeend',`
-      <tr>
-        <td title="${c.email|| ''}" onclick="copyCellContent(event, 'email')" style="cursor: pointer;">${c.email|| ''}</td>
-        <td title="${c.phone|| ''}" onclick="copyCellContent(event, 'phone')" style="cursor: pointer;">${c.phone|| ''}</td>
-        <td title="${c.source|| ''}">${c.source|| ''}</td>
-        <td title="${c.timestamp|| ''}">${c.timestamp|| ''}</td>
-      </tr>`);
-  });
 }
 
 function startProgressStream() {
@@ -209,7 +305,11 @@ function startProgressStream() {
   
   eventSource.onmessage = function(event) {
     const data = JSON.parse(event.data);
-    const spinner=document.getElementById('loading'); // Get spinner element
+    const spinner=document.getElementById('loading');
+    const resultsBox = document.getElementById('results');
+    const startButton = document.getElementById('startButton');
+    const continueButton = document.getElementById('continueButton');
+    const interactionOptions = document.querySelectorAll('.interaction-options input[type="checkbox"]');
     
     if (data.type === 'heartbeat') {
       console.debug('Heartbeat received');
@@ -218,39 +318,54 @@ function startProgressStream() {
     
     if (data.type === 'status') {
       logMessage(data.message);
-      if (data.message === 'Search complete!' || data.message === 'Search complete') { // Check for both variations
+      if (data.message.includes('Task complete!')) { // Check for explicit complete message
         if (eventSource) {
           eventSource.close();
           console.log('EventSource closed on search complete message.');
         }
-        if(spinner) spinner.style.display = 'none'; // Hide spinner
-        document.getElementById('results').style.display='block'; // Ensure results box is shown if needed
+        if(spinner) spinner.style.display = 'none';
+        resultsBox.style.display='block';
+        startButton.style.display = 'block'; // Show Start button
+        continueButton.style.display = 'none'; // Hide Continue button
+        interactionOptions.forEach(checkbox => checkbox.disabled = false);
+      } else if (data.message.includes('Agent paused.')) { // Check for paused message
+        if (eventSource) {
+          eventSource.close();
+          console.log('EventSource closed on agent paused message.');
+        }
+        if(spinner) spinner.style.display = 'none';
+        resultsBox.style.display='block';
+        resultsBox.textContent = data.message; // Display paused message
+        startButton.style.display = 'none'; // Hide Start button
+        continueButton.style.display = 'block'; // Show Continue button
+        interactionOptions.forEach(checkbox => checkbox.disabled = false);
       }
-    } else if (data.type === 'contacts_found') {
-      logMessage(`Found ${data.contacts.length} contacts from ${data.source || 'unknown source'}`);
-      updateContactsTable(data.contacts);
     } else if (data.type === 'error') {
       logMessage(`Error: ${data.message}`);
       if (eventSource) {
         eventSource.close();
         console.log('EventSource closed on error message.');
       }
-      if(spinner) spinner.style.display = 'none'; // Hide spinner on error too
-      document.getElementById('results').style.display='block'; // Show results box to display error message
-      document.getElementById('results').textContent = data.message;
+      if(spinner) spinner.style.display = 'none';
+      resultsBox.style.display='block';
+      resultsBox.textContent = 'Agent Error: ' + data.message;
+    } else if (data.type === 'agent_output') {
+        // You can add logic here to display specific agent outputs if needed
+        // For now, the main result is shown after completion.
+        console.log('Agent Output Step:', data.content);
     }
   };
   
   eventSource.onerror = function() {
-    logMessage('Connection to progress stream lost. Please retry search if active.');
+    logMessage('Connection to progress stream lost. Please check the server logs.');
     if (eventSource) {
       eventSource.close();
       console.log('EventSource closed on onerror.');
     }
     const spinner=document.getElementById('loading');
-    if(spinner) spinner.style.display = 'none'; // Hide spinner on stream error
+    if(spinner) spinner.style.display = 'none';
     document.getElementById('results').style.display='block';
-    document.getElementById('results').textContent = 'Stream connection error.';
+    document.getElementById('results').textContent = 'Stream connection error or agent finished without explicit complete message.';
   };
 }
 
@@ -259,51 +374,100 @@ async function performSearch(){
   const query=document.getElementById('query').value.trim();
   const resBox=document.getElementById('results');
   const spinner=document.getElementById('loading');
+  const allowLikes = document.getElementById('allowLikes').checked;
+  const allowBookmarks = document.getElementById('allowBookmarks').checked;
+  const allowComments = document.getElementById('allowComments').checked;
+  const allowReposts = document.getElementById('allowReposts').checked;
+
   resBox.style.display='none';
+  resBox.textContent = ''; // Clear previous results
+  document.getElementById('logArea').innerHTML = ''; // Clear log
   spinner.style.display='block';
+  const startButton = document.getElementById('startButton');
+  const continueButton = document.getElementById('continueButton');
+  const interactionOptions = document.querySelectorAll('.interaction-options input[type="checkbox"]');
+
+  function setControlsEnabled(enabled) {
+    startButton.disabled = !enabled;
+    // Only enable continue if it's visible (meaning agent is paused)
+    if (continueButton.style.display !== 'none') {
+      continueButton.disabled = !enabled;
+    }
+    document.getElementById('query').disabled = !enabled;
+    document.getElementById('apiKey').disabled = !enabled;
+    document.querySelectorAll('.api-key-section .btn').forEach(btn => btn.disabled = !enabled);
+    interactionOptions.forEach(checkbox => checkbox.disabled = !enabled);
+  }
+
+  setControlsEnabled(false); // Disable controls while running
   
-  if(!apiKey){logMessage('Missing API key!');spinner.style.display='none';return;}
-  if(!query){logMessage('Missing search query!');spinner.style.display='none';return;}
+  if(!apiKey){logMessage('Missing API key!');spinner.style.display='none'; setControlsEnabled(true); startButton.style.display = 'block'; return;}
+  if(!query){logMessage('Missing task query!');spinner.style.display='none'; setControlsEnabled(true); startButton.style.display = 'block'; return;}
   
   // Start listening for progress updates
   startProgressStream();
   
   try{
-    const r=await fetch('/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:apiKey,query})});
+    const r=await fetch('/search',{
+        method:'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            api_key:apiKey,
+            query:query,
+            interactions: { likes: allowLikes, bookmarks: allowBookmarks, comments: allowComments, reposts: allowReposts }
+        })
+    });
     const data=await r.json();
-    spinner.style.display='none';
-    resBox.style.display='block';
+
+    // The main result is now primarily communicated via the progress stream 'complete' status
+    // This block will handle any immediate JSON response from the server after the async agent starts
+    spinner.style.display='none'; // Hide spinner when the initial response is received
+    resBox.style.display='block'; // Show results box
+    
     if(data.result){
-      logMessage('Search complete!');
-      // resBox.textContent=data.result; // Result is now shown via progress stream
-    }
-    else if(data.error){
-      logMessage('Error: '+data.error);
+      // The final result is now primarily communicated via the progress stream 'complete' status
+      // This block will handle any immediate JSON response from the server after the async agent starts
+      // spinner.style.display='none'; // Hide spinner when the initial response is received
+      // resBox.style.display='block'; // Show results box
+      
+      // The main result will come via the SSE stream now, don't show a success message here immediately
+      logMessage('Agent initiation response received. Monitoring progress stream...');
+      // resBox.textContent = 'Agent started successfully. Check log for progress...';
+    } else if(data.error){
+      logMessage('Error initiating agent: '+data.error);
       resBox.textContent=data.error;
+       if (eventSource) { // Close stream on immediate error
+        eventSource.close();
+        console.log('EventSource closed on initial error.');
+      }
+      spinner.style.display='none'; // Hide spinner
+      resBox.style.display='block'; // Show results box
+      startButton.style.display = 'block'; // Show Start button
+      continueButton.style.display = 'none'; // Hide Continue button
+      setControlsEnabled(true); // Enable controls
+    } else {
+      logMessage('Unknown response from server after initiating search.');
+      resBox.textContent = 'Unknown response.';
+      spinner.style.display='none'; // Hide spinner
+      resBox.style.display='block'; // Show results box
+      startButton.style.display = 'block'; // Show Start button
+      continueButton.style.display = 'none'; // Hide Continue button
+      setControlsEnabled(true); // Enable controls
     }
-    else{
-      logMessage('Unknown response from server.');
-    }
+
   }catch(e){
     spinner.style.display='none';
-    logMessage('Network or server error.');
+    logMessage('Network or server error during search initiation.');
+    document.getElementById('results').style.display='block';
+    document.getElementById('results').textContent = 'Network or server error.';
+     if (eventSource) { // Close stream on network error
+        eventSource.close();
+        console.log('EventSource closed on network error.');
+      }
+    startButton.style.display = 'block'; // Show Start button
+    continueButton.style.display = 'none'; // Hide Continue button
+    setControlsEnabled(true); // Enable controls
   }
-}
-
-async function loadContacts(){
-  const res=await fetch('/contacts');
-  const contacts=await res.json();
-  const tbody=document.querySelector('#contacts-table tbody');
-  tbody.innerHTML='';
-  contacts.forEach(c=>{
-    tbody.insertAdjacentHTML('beforeend',`
-      <tr>
-        <td title="${c.email|| ''}" onclick="copyCellContent(event, 'email')" style="cursor: pointer;">${c.email|| ''}</td>
-        <td title="${c.phone|| ''}" onclick="copyCellContent(event, 'phone')" style="cursor: pointer;">${c.phone|| ''}</td>
-        <td title="${c.source|| ''}">${c.source|| ''}</td>
-        <td title="${c.timestamp|| ''}">${c.timestamp|| ''}</td>
-      </tr>`);
-  });
 }
 
 async function loadSavedApiKey() {
@@ -357,60 +521,11 @@ async function clearApiKey() {
   }
 }
 
-async function copyAllEmails() {
-  const emailCells = document.querySelectorAll('#contacts-table tbody td:first-child');
-  const emails = Array.from(emailCells).map(cell => cell.textContent.trim()).filter(email => email);
-  
-  if (emails.length === 0) {
-    logMessage('No emails to copy.');
-    return;
-  }
-  
-  try {
-    await navigator.clipboard.writeText(emails.join('\n'));
-    logMessage('All emails copied to clipboard!');
-  } catch (err) {
-    logMessage('Failed to copy emails: ' + err);
-  }
-}
-
-async function deleteAllContacts() {
-  if (!confirm('Are you sure you want to delete all contacts? This action cannot be undone.')) {
-    return;
-  }
-  
-  try {
-    const response = await fetch('/contacts', { method: 'DELETE' });
-    if (response.ok) {
-      document.querySelector('#contacts-table tbody').innerHTML = ''; // Clear table
-      logMessage('All contacts deleted successfully.');
-    } else {
-      const data = await response.json();
-      logMessage('Failed to delete contacts: ' + (data.error || 'Server error'));
-    }
-  } catch (e) {
-    logMessage('Error deleting contacts: ' + e);
-  }
-}
-
-async function copyCellContent(event, type) {
-  const textToCopy = event.target.textContent.trim();
-  if (!textToCopy) {
-    logMessage(`No ${type} to copy.`);
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(textToCopy);
-    logMessage(`Copied ${type}: ${textToCopy}`);
-  } catch (err) {
-    logMessage(`Failed to copy ${type}: ` + err);
-  }
-}
-
 // Load saved API key when page loads
 window.onload = function() {
   loadSavedApiKey();
-  loadContacts();
+  setControlsEnabled(true); // Ensure controls are enabled on initial load
+  // loadContacts() is removed as it's no longer needed
 };
 </script>
 </body>
