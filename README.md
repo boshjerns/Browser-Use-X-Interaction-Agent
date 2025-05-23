@@ -1,12 +1,12 @@
 <div align="center">
 
-# 🔎 Browser-Use Contact Discovery Agent  
+# 🔎 Browser-Use-X-Interaction-Agent  
 **Real-time, AI-powered contact hunting with a dash of Windows-95 nostalgia**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)
-[![Issues](https://img.shields.io/github/issues/boshjerns/BrowserUse--Contact-Discovery-Agent?logo=github)](https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent/issues)
-[![Stars](https://img.shields.io/github/stars/boshjerns/BrowserUse--Contact-Discovery-Agent?style=social)](https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent/stargazers)
+[![Issues](https://img.shields.io/github/issues/boshjerns/Browser-Use-X-Interaction-Agent?logo=github)](https://github.com/boshjerns/Browser-Use-X-Interaction-Agent/issues)
+[![Stars](https://img.shields.io/github/stars/boshjerns/Browser-Use-X-Interaction-Agent?style=social)](https://github.com/boshjerns/Browser-Use-X-Interaction-Agent/stargazers)
 
 </div>
 
@@ -45,8 +45,8 @@ A lightweight Flask app that automates your browser to scour the web for **email
 
 ```bash
 # 1 Clone the repo
-git clone https://github.com/boshjerns/BrowserUse--Contact-Discovery-Agent.git
-cd BrowserUse--Contact-Discovery-Agent
+git clone https://github.com/boshjerns/Browser-Use-X-Interaction-Agent.git
+cd Browser-Use-X-Interaction-Agent
 
 # 2 Install deps (create a venv if you like)
 pip install -r requirements.txt
