@@ -133,14 +133,106 @@ def search():
     robust_prompt = (
         f"As you search for contact information for {query}, collect every email address and phone number you find, including those for managers, assistants, agencies, or related contacts. "
         "After each relevant page or step, output a JSON array of all contacts found so far, with fields: 'role', 'name', 'email', 'phone', and 'source' (the URL or page name). "
-        "Continue searching and updating the list until no more new contacts are found or all reasonable sources are exhausted."
+        "Continue searching and updating the list until no more new contacts are found or all reasonable sources are exhausted. "
+        "If you encounter a page requiring human verification (e.g., a captcha or login you cannot bypass), do not use the 'ask_human' action. Instead, navigate back and try a different search result or an alternative strategy to find the information."
     )
 
     async def run_agent():
+        # Create a handler for processing steps
+        # This handler receives the agent instance after each step execution
+        async def step_handler(agent_instance):
+            """Callback executed after each agent step to extract contacts and push SSE updates."""
+            # Ensure the agent has history to inspect
+            if not hasattr(agent_instance, 'state') or not agent_instance.state.history:
+                return
+
+            history = agent_instance.state.history
+            # Get the most recent extracted content and URL from the history
+            extracted_content_list = history.extracted_content() # Note: This gets all extracted content so far
+            current_url_source = history.urls()[-1] if history.urls() else "Unknown Source"
+
+            contacts_for_this_step = [] # Stores all unique contacts found in this specific step processing
+
+            # Process the most recent extracted content block
+            if extracted_content_list:
+                latest_content_block = extracted_content_list[-1]
+
+                # Set to keep track of (email, phone) tuples from JSON in this step to avoid re-adding by regex
+                json_parsed_identifiers_this_step = set()
+
+                # 1. Try to parse JSON array from the latest content block
+                try:
+                    json_start = latest_content_block.find('[')
+                    json_end = latest_content_block.rfind(']')
+                    if json_start != -1 and json_end != -1 and json_end > json_start:
+                        json_str = latest_content_block[json_start : json_end + 1]
+                        parsed_json_contacts = json.loads(json_str)
+                        if isinstance(parsed_json_contacts, list):
+                            for c in parsed_json_contacts:
+                                if isinstance(c, dict):
+                                    if 'source' not in c or not c['source']:
+                                        c['source'] = current_url_source
+                                    # Ensure essential fields
+                                    c.setdefault('role', 'Unknown')
+                                    c.setdefault('name', '')
+                                    c_email = c.setdefault('email', '')
+                                    c_phone = c.setdefault('phone', '')
+
+                                    contacts_for_this_step.append(c)
+                                    if c_email:
+                                        json_parsed_identifiers_this_step.add((c_email.lower(), 'email'))
+                                    if c_phone:
+                                        json_parsed_identifiers_this_step.add((c_phone, 'phone'))
+                            logger.info(f"Step_handler: Parsed {len(parsed_json_contacts)} contacts from JSON block.")
+                except json.JSONDecodeError as e:
+                    logger.warning(f'Step_handler: JSONDecodeError parsing content block from agent history: {e}. Will proceed with regex.')
+                except Exception as e:
+                    logger.error(f'Step_handler: Unexpected error parsing JSON from agent history: {e}. Proceeding with regex.')
+
+                # 2. Scan the same latest_content_block for emails/phones using regex
+                emails_from_regex, phones_from_regex = extract_emails_and_phones(latest_content_block)
+
+                for email_r in emails_from_regex:
+                    if (email_r.lower(), 'email') not in json_parsed_identifiers_this_step:
+                        contacts_for_this_step.append({
+                            'role': 'Unknown',
+                            'name': '',
+                            'email': email_r,
+                            'phone': '',
+                            'source': current_url_source
+                        })
+                        logger.info(f"Step_handler: Added new email from regex: {email_r}")
+
+                for phone_r in phones_from_regex:
+                    if (phone_r, 'phone') not in json_parsed_identifiers_this_step:
+                        contacts_for_this_step.append({
+                            'role': 'Unknown',
+                            'name': '',
+                            'email': '',
+                            'phone': phone_r,
+                            'source': current_url_source
+                        })
+                        logger.info(f"Step_handler: Added new phone from regex: {phone_r}")
+
+            if contacts_for_this_step:
+                # save_contacts_stepwise handles global deduplication before saving to contacts.json
+                # Use agent_instance.task as the target
+                save_contacts_stepwise(agent_instance.task if hasattr(agent_instance, 'task') else "Unknown Target", contacts_for_this_step)
+                # Send only the unique contacts found *in this step* to the frontend for logging
+                search_progress.put({
+                    'type': 'contacts_found',
+                    'contacts': contacts_for_this_step,
+                    'source': current_url_source
+                })
+                logger.info(
+                    f"Step_handler: Pushed {len(contacts_for_this_step)} unique contacts for this step to frontend/save."
+                )
+
+        # Instantiate the Agent
         agent = Agent(
-            task=robust_prompt, 
+            task=robust_prompt,
             llm=model,
-            use_vision=True
+            use_vision=True,
         )
         logger.info('Initialized Agent')
         # Send initial progress update
@@ -149,71 +241,102 @@ def search():
             'message': 'Starting search...'
         })
 
-        # Create a handler for processing steps
-        def step_handler(step_output):
-            if not hasattr(agent, 'state') or not agent.state.history:
-                return
-                
-            history = agent.state.history
-            extracted = history.extracted_content()
-            source = history.urls()[-1] if history.urls() else ""
-            found_contacts = []
-            
-            if extracted:
-                last = extracted[-1]
-                # Try to parse JSON array as before
-                try:
-                    start = last.find('[')
-                    end = last.rfind(']')
-                    if start != -1 and end != -1:
-                        json_str = last[start:end+1]
-                        contacts = json.loads(json_str)
-                        for c in contacts:
-                            if 'source' not in c:
-                                c['source'] = source
-                        found_contacts.extend(contacts)
-                except Exception as e:
-                    logger.error(f'Error parsing/saving contacts: {e}')
-                # Always scan for emails/phones in the text
-                emails, phones = extract_emails_and_phones(last)
-                for email in emails:
-                    found_contacts.append({
-                        'role': 'Unknown',
-                        'name': '',
-                        'email': email,
-                        'phone': '',
-                        'source': source
-                    })
-                for phone in phones:
-                    found_contacts.append({
-                        'role': 'Unknown',
-                        'name': '',
-                        'email': '',
-                        'phone': phone,
-                        'source': source
-                    })
-            if found_contacts:
-                save_contacts_stepwise(agent.task, found_contacts)
-                # Send progress update
-                search_progress.put({
-                    'type': 'contacts_found',
-                    'contacts': found_contacts,
-                    'source': source
-                })
-
-        # Run the agent with the step handler
-        result = await agent.run(max_steps=100)
+        # Run the agent
+        # Pass the step_handler to the run method
+        logger.info("Attempting to run agent with on_step_end callback.")
+        result = await agent.run(max_steps=100, on_step_end=step_handler)
         logger.info('Agent run complete')
-        # Send final progress update
-        search_progress.put({
-            'type': 'status',
-            'message': 'Search complete'
-        })
+
+        http_response_payload = str(result) # Default payload
+
         if hasattr(result, 'final_result'):
             final = result.final_result()
             logger.info(f'Final result: {final}')
-            return final
-        return str(result)
+
+            final_contacts_found = []
+            final_source_for_contacts = "Unknown"
+
+            if final:
+                # Determine the source URL for these final contacts
+                source_match_in_final_text = re.search(r"Source:\s*(https?://[^\s,]+)", final, re.IGNORECASE)
+                if source_match_in_final_text:
+                    final_source_for_contacts = source_match_in_final_text.group(1)
+                elif hasattr(agent, 'state') and agent.state and hasattr(agent.state, 'history') and agent.state.history and agent.state.history.urls():
+                    final_source_for_contacts = agent.state.history.urls()[-1]
+                else:
+                    final_source_for_contacts = "Final result summary"
+
+                # Attempt to parse structured JSON from the final string first
+                parsed_contacts_from_final = False
+                try:
+                    # The agent's output might be a string like "Collected contacts: [{"role": ...}]"
+                    # We need to extract the actual JSON part.
+                    json_start_index = final.find('[')
+                    json_end_index = final.rfind(']')
+                    if json_start_index != -1 and json_end_index != -1 and json_end_index > json_start_index:
+                        json_str_from_final = final[json_start_index : json_end_index + 1]
+                        contacts_from_json = json.loads(json_str_from_final)
+                        if isinstance(contacts_from_json, list):
+                            for c in contacts_from_json:
+                                if isinstance(c, dict):
+                                    if 'source' not in c or not c['source']:
+                                        c['source'] = final_source_for_contacts
+                                    # Ensure essential fields exist, even if empty, to prevent downstream errors
+                                    c.setdefault('role', 'Unknown')
+                                    c.setdefault('name', '')
+                                    c.setdefault('email', '')
+                                    c.setdefault('phone', '')
+                                    final_contacts_found.append(c)
+                            parsed_contacts_from_final = True
+                            logger.info(f"Successfully parsed {len(contacts_from_json)} contacts from final result JSON string.")
+                        else:
+                            logger.warning("Parsed JSON from final result was not a list.")
+                    else:
+                        logger.info("No JSON array found in final result string for direct parsing.")
+                except json.JSONDecodeError as e:
+                    logger.warning(f'JSONDecodeError when parsing final result: {e}. Will fall back to regex.')
+                except Exception as e:
+                    logger.error(f'Unexpected error parsing final result JSON: {e}. Will fall back to regex.')
+
+                # If JSON parsing failed or did not happen, fall back to regex extraction for emails/phones
+                if not parsed_contacts_from_final:
+                    logger.info("Falling back to regex extraction for final result.")
+                    emails, phones = extract_emails_and_phones(final)
+                    for email in emails:
+                        final_contacts_found.append({
+                            'role': 'Unknown',
+                            'name': '',
+                            'email': email,
+                            'phone': '',
+                            'source': final_source_for_contacts
+                        })
+                    for phone in phones:
+                        final_contacts_found.append({
+                            'role': 'Unknown',
+                            'name': '',
+                            'email': '',
+                            'phone': phone,
+                            'source': final_source_for_contacts
+                        })
+            
+            if final_contacts_found:
+                logger.info(f"Extracted contacts from final result: {final_contacts_found}")
+                # Ensure agent.task is appropriate for save_contacts_stepwise, it's the original query
+                save_contacts_stepwise(agent.task if hasattr(agent, 'task') else "Unknown Target", final_contacts_found)
+                search_progress.put({
+                    'type': 'contacts_found',
+                    'contacts': final_contacts_found,
+                    'source': final_source_for_contacts 
+                })
+            
+            http_response_payload = final # Set the HTTP response to the final agent output
+        
+        # Send "Search complete!" message AFTER all final processing and contact sending
+        search_progress.put({
+            'type': 'status',
+            'message': 'Search complete!'
+        })
+        return http_response_payload
 
     try:
         try:

@@ -47,10 +47,13 @@ Common action sequences:
 
 - If no suitable elements exist, use other functions to complete the task
 - If stuck, try alternative approaches - like going back to a previous page, new search, new tab etc.
+- If a page requests personal input (e.g. e-mail sign-up, login, marketing form) that is **not** explicitly required by the ultimate task, immediately abort that flow: go back, close the modal, or start a new search instead of waiting for user input.
+- If you have remained on the **same URL for 3 consecutive steps** (or more) without meaningful progress towards the next goal, assume you are stuck. Change strategy right away—scroll further, navigate to a different page, use the browser back button, or issue a new search query.
+- Proactively avoid loops: whenever you detect repeated failures or lack of new content, pivot to a fresh page or search rather than retrying the same action.
 - Handle popups/cookies by accepting or closing them
 - Use scroll to find elements you are looking for
 - If you want to research something, open a new tab instead of using the current tab
-- If captcha pops up, try to solve it - else try a different approach
+- If captcha pops up, try to solve it - else try a different approach (e.g. go back, try a different search result, or open a new tab with a different URL). **Do not ask for human assistance to solve CAPTCHAs or Cloudflare-like verifications.**
 - If the page is not fully loaded, use wait action
 
 5. TASK COMPLETION:

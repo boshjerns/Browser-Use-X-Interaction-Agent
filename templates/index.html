@@ -209,26 +209,48 @@ function startProgressStream() {
   
   eventSource.onmessage = function(event) {
     const data = JSON.parse(event.data);
+    const spinner=document.getElementById('loading'); // Get spinner element
     
     if (data.type === 'heartbeat') {
-      console.debug('Heartbeat received'); // Added for debugging, can be removed
-      return; // Ignore heartbeat messages
+      console.debug('Heartbeat received');
+      return;
     }
     
     if (data.type === 'status') {
       logMessage(data.message);
+      if (data.message === 'Search complete!' || data.message === 'Search complete') { // Check for both variations
+        if (eventSource) {
+          eventSource.close();
+          console.log('EventSource closed on search complete message.');
+        }
+        if(spinner) spinner.style.display = 'none'; // Hide spinner
+        document.getElementById('results').style.display='block'; // Ensure results box is shown if needed
+      }
     } else if (data.type === 'contacts_found') {
-      logMessage(`Found ${data.contacts.length} contacts from ${data.source}`);
+      logMessage(`Found ${data.contacts.length} contacts from ${data.source || 'unknown source'}`);
       updateContactsTable(data.contacts);
     } else if (data.type === 'error') {
       logMessage(`Error: ${data.message}`);
-      eventSource.close();
+      if (eventSource) {
+        eventSource.close();
+        console.log('EventSource closed on error message.');
+      }
+      if(spinner) spinner.style.display = 'none'; // Hide spinner on error too
+      document.getElementById('results').style.display='block'; // Show results box to display error message
+      document.getElementById('results').textContent = data.message;
     }
   };
   
   eventSource.onerror = function() {
     logMessage('Connection to progress stream lost. Please retry search if active.');
-    eventSource.close();
+    if (eventSource) {
+      eventSource.close();
+      console.log('EventSource closed on onerror.');
+    }
+    const spinner=document.getElementById('loading');
+    if(spinner) spinner.style.display = 'none'; // Hide spinner on stream error
+    document.getElementById('results').style.display='block';
+    document.getElementById('results').textContent = 'Stream connection error.';
   };
 }
 
@@ -265,10 +287,6 @@ async function performSearch(){
   }catch(e){
     spinner.style.display='none';
     logMessage('Network or server error.');
-  } finally {
-    if (eventSource) {
-      eventSource.close();
-    }
   }
 }
 
