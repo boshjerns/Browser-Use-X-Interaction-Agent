@@ -136,62 +136,73 @@ def search():
         "Continue searching and updating the list until no more new contacts are found or all reasonable sources are exhausted."
     )
 
-    async def on_step_end(agent):
-        history = agent.state.history
-        extracted = history.extracted_content()
-        source = history.urls()[-1] if history.urls() else ""
-        found_contacts = []
-        if extracted:
-            last = extracted[-1]
-            # Try to parse JSON array as before
-            try:
-                start = last.find('[')
-                end = last.rfind(']')
-                if start != -1 and end != -1:
-                    json_str = last[start:end+1]
-                    contacts = json.loads(json_str)
-                    for c in contacts:
-                        if 'source' not in c:
-                            c['source'] = source
-                    found_contacts.extend(contacts)
-            except Exception as e:
-                logger.error(f'Error parsing/saving contacts: {e}')
-            # Always scan for emails/phones in the text
-            emails, phones = extract_emails_and_phones(last)
-            for email in emails:
-                found_contacts.append({
-                    'role': 'Unknown',
-                    'name': '',
-                    'email': email,
-                    'phone': '',
-                    'source': source
-                })
-            for phone in phones:
-                found_contacts.append({
-                    'role': 'Unknown',
-                    'name': '',
-                    'email': '',
-                    'phone': phone,
-                    'source': source
-                })
-        if found_contacts:
-            save_contacts_stepwise(agent.task, found_contacts)
-            # Send progress update
-            search_progress.put({
-                'type': 'contacts_found',
-                'contacts': found_contacts,
-                'source': source
-            })
-
     async def run_agent():
-        agent = Agent(task=robust_prompt, llm=model)
+        agent = Agent(
+            task=robust_prompt, 
+            llm=model,
+            use_vision=True
+        )
         logger.info('Initialized Agent')
         # Send initial progress update
         search_progress.put({
             'type': 'status',
             'message': 'Starting search...'
         })
-        result = await agent.run(on_step_end=on_step_end, max_steps=100)
+
+        # Create a handler for processing steps
+        def step_handler(step_output):
+            if not hasattr(agent, 'state') or not agent.state.history:
+                return
+                
+            history = agent.state.history
+            extracted = history.extracted_content()
+            source = history.urls()[-1] if history.urls() else ""
+            found_contacts = []
+            
+            if extracted:
+                last = extracted[-1]
+                # Try to parse JSON array as before
+                try:
+                    start = last.find('[')
+                    end = last.rfind(']')
+                    if start != -1 and end != -1:
+                        json_str = last[start:end+1]
+                        contacts = json.loads(json_str)
+                        for c in contacts:
+                            if 'source' not in c:
+                                c['source'] = source
+                        found_contacts.extend(contacts)
+                except Exception as e:
+                    logger.error(f'Error parsing/saving contacts: {e}')
+                # Always scan for emails/phones in the text
+                emails, phones = extract_emails_and_phones(last)
+                for email in emails:
+                    found_contacts.append({
+                        'role': 'Unknown',
+                        'name': '',
+                        'email': email,
+                        'phone': '',
+                        'source': source
+                    })
+                for phone in phones:
+                    found_contacts.append({
+                        'role': 'Unknown',
+                        'name': '',
+                        'email': '',
+                        'phone': phone,
+                        'source': source
+                    })
+            if found_contacts:
+                save_contacts_stepwise(agent.task, found_contacts)
+                # Send progress update
+                search_progress.put({
+                    'type': 'contacts_found',
+                    'contacts': found_contacts,
+                    'source': source
+                })
+
+        # Run the agent with the step handler
+        result = await agent.run(max_steps=100)
         logger.info('Agent run complete')
         # Send final progress update
         search_progress.put({
