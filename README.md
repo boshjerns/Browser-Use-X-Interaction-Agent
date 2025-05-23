@@ -1,7 +1,7 @@
 <div align="center">
 
-# 🔎 Browser-Use-X-Interaction-Agent  
-**Real-time, AI-powered contact hunting with a dash of Windows-95 nostalgia**
+# 🤖 Browser-Use-X-Interaction-Agent
+**AI-Powered Automation for Your X.com (Twitter) Feed**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)
@@ -10,7 +10,7 @@
 
 </div>
 
-A lightweight Flask app that automates your browser to scour the web for **emails, phone numbers, and social handles** — then streams the results to you in real time. Perfect for founders, recruiters, sales teams, and curious hackers who need fresh contacts **now** rather than **sometime next week**.
+An AI-powered Flask application that automates your X.com (formerly Twitter) account. Define a task, and the agent will browse your feed, observe your interaction style from your profile, and then engage with relevant, organic content by liking, bookmarking, reposting, or commenting on your behalf. Features real-time progress updates and intelligent ad avoidance.
 
 ---
 
@@ -18,74 +18,85 @@ A lightweight Flask app that automates your browser to scour the web for **email
 
 | ⚡ Feature | 🚀 What It Delivers |
 |-----------|--------------------|
-| **Live browser automation** | Chrome/Edge driven by [Browser-Use](https://docs.browser-use.com) with smart retries and captcha handling |
-| **Instant progress feed**   | WebSocket logs update as each page is parsed—no more staring at a loading spinner |
-| **LLM-assisted parsing**    | LangChain + OpenAI extract structured contacts from messy HTML |
-| **Deduped contact vault**   | Normalizes contacts and stores them in a local `contacts.json` file to avoid duplicates |
-| **Secure secrets**          | User-provided API keys (e.g., for OpenAI) are encrypted using Fernet (AES in CBC mode with HMAC) from the `cryptography` library. The master encryption key is stored locally in `.api_key`, and the encrypted user API key is stored in `.encrypted_api_key`. Both files are correctly listed in `.gitignore` to prevent them from being committed to version control. Decrypted keys are held in memory only when actively being used by the application. |
-| **Retro Win-95 UI**         | Pixel-perfect buttons, gray panels, and a splash of neon green for that _dial-up_ vibe |
-
----
-
-## 📸 Screenshots
-
-| Screenshot 1 | Screenshot 2 | Screenshot 3 |
-|-------------|--------------|--------------|
-| <img src="docs/screenshots/download.png" alt="Contact Search Console" width="300"/> | <img src="docs/screenshots/IMG_5247.jpg" alt="Cat using app" width="300"/> | <img src="docs/screenshots/12333.png" alt="Additional Screenshot" width="300"/> |
-
-<p align="center">
-  <img src="docs/screenshots/imagqe.png" alt="Additional UI" width="620"/>
-</p>
-
-> _Don't see images?_ Make sure the files live in `docs/screenshots/`.
+| **Intelligent X.com Interaction** | Automates browsing, liking, bookmarking, reposting, and commenting on X.com. |
+| **User Style Emulation** | Observes the logged-in user's profile (Tweets, Replies, Likes) to mimic their typical interaction style. |
+| **Task-Driven Operation** | Executes actions based on a user-defined task (e.g., "Find and like posts about AI in sports"). |
+| **Advanced Ad Detection** | Actively identifies and ignores advertisements in the feed, focusing only on organic content. |
+| **Real-Time Web UI** | Provides live feedback and progress updates directly in your browser via Server-Sent Events. |
+| **`gpt-4o` Powered Decisions** | Leverages OpenAI's `gpt-4o` for nuanced understanding and context-aware interactions. |
+| **Robust Browser Control** | Built on the `browser-use` library for effective and observable browser automation (runs non-headless). |
+| **Secure API Key Handling** | Manages your OpenAI API key securely with encryption, allowing input via the UI or an environment variable. |
 
 ---
 
 ## 🚀 Quick Start
 
-```bash
-# 1 Clone the repo
-git clone https://github.com/boshjerns/Browser-Use-X-Interaction-Agent.git
-cd Browser-Use-X-Interaction-Agent
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/boshjerns/Browser-Use-X-Interaction-Agent.git
+    cd Browser-Use-X-Interaction-Agent
+    ```
 
-# 2 Install deps (create a venv if you like)
-pip install -r requirements.txt
+2.  **Install Dependencies:**
+    ```bash
+    # It's recommended to use a virtual environment
+    # python -m venv venv
+    # source venv/bin/activate  (or .\venv\Scripts\activate on Windows)
+    pip install -r requirements.txt
+    ```
 
-# 3 Provide your OpenAI key  
-# • EITHER export it as an env var …
-export OPENAI_API_KEY="sk-…"           # Windows PowerShell: setx OPENAI_API_KEY "sk-…"
-# • OR simply paste it into the UI when the app starts — no env setup required.
+3.  **Configure Google Chrome Path:**
+    Open `app.py` and update the `browser_binary_path` in the `BrowserConfig` to your local Google Chrome executable path.
+    ```python
+    # Example in app.py:
+    browser_config = BrowserConfig(
+        browser_binary_path='C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', # <-- UPDATE THIS PATH
+        headless=False
+    )
+    ```
 
-# 4 Fire it up
-python app.py                          # then open http://127.0.0.1:5000
-```
+4.  **Provide Your OpenAI API Key:**
+    *   **Option 1 (Recommended - UI):** The application will prompt you to enter your API key in the web interface. It will be stored securely in an encrypted file (`.encrypted_api_key`).
+    *   **Option 2 (Environment Variable):**
+        ```bash
+        # On Linux/macOS
+        export OPENAI_API_KEY="sk-..."
+        # On Windows PowerShell
+        $env:OPENAI_API_KEY="sk-..."
+        ```
+
+5.  **Run the Application:**
+    ```bash
+    python app.py
+    ```
+    Then open `http://127.0.0.1:5000` in your web browser.
 
 ---
 
 ## 🔑 Environment Variables
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `OPENAI_API_KEY`       | LLM calls for parsing & reasoning (optional — can be entered in the UI) | *none* |
+| Variable         | Purpose                                           | Default | How to Set                  |
+|------------------|---------------------------------------------------|---------|-----------------------------|
+| `OPENAI_API_KEY` | Your OpenAI API key for LLM-driven decision making. | *none*  | Via UI (recommended) or Env Var |
 
 ---
 
 ## 🏆 Credits & Acknowledgements
 
-This project **forks and extends** the excellent **[Browser-Use](https://github.com/browser-use/browser-use)** library by Gregor Žunič & Magnus Müller.
+This project leverages and extends the excellent **[Browser-Use](https://github.com/browser-use/browser-use)** library by Gregor Žunič & Magnus Müller.
 
 <p align="center">
-  <img alt="Browser-Use logo" src="docs/assets/browser-use.png" width="220">
+  <img alt="Browser-Use logo" src="docs/assets/browser-use.png" width="220"> 
+  <!-- Ensure this image path is correct or remove if not present -->
 </p>
 
-Huge thanks to the Browser-Use community for paving the way in AI-driven browser automation. Jump into their [Discord](https://link.browser-use.com/discord) to see what others are building!
+Huge thanks to the Browser-Use community for their foundational work in AI-driven browser automation. Explore their [Discord](https://link.browser-use.com/discord) to see more innovative projects!
 
 ---
 
 ## 🙌 Contributing
 
-Bug reports & pull requests are welcome.  
-Got a feature idea? Open an issue or ping **@boshjerns**.
+Bug reports, feature requests, and pull requests are welcome! Please open an issue to discuss any significant changes.
 
 ---
 
