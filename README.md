@@ -29,8 +29,9 @@ A lightweight Flask app that automates your browser to scour the web for **email
 
 ## 📸 Screenshots
 
+| Screenshot 1 | Screenshot 2 | Screenshot 3 |
+|-------------|--------------|--------------|
 | <img src="docs/screenshots/download.png" alt="Contact Search Console" width="300"/> | <img src="docs/screenshots/IMG_5247.jpg" alt="Cat using app" width="300"/> | <img src="docs/screenshots/12333.png" alt="Additional Screenshot" width="300"/> |
-|:-----------------------------------------------------------------------------------:|:---------------------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
 
 <p align="center">
   <img src="docs/screenshots/imagqe.png" alt="Additional UI" width="620"/>
